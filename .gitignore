@@ -2,6 +2,10 @@
 .env
 .env.*
 !.env.example
+!.env.docker.example
 
 # OS / editor
 .DS_Store
+
+# Docker local overrides (may contain secrets)
+.env.docker
