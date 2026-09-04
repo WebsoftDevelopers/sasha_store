@@ -1,0 +1,7 @@
+[submodule "api_services"]
+    path = api_services
+    url = git@github.com:WebsoftDevelopers/Sasha_fragrance_store_backend.git
+
+[submodule "web_services"]
+    path = web_services
+    url = git@github.com:WebsoftDevelopers/Sasha_fragrance_store_frontend.git
