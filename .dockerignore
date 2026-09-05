@@ -1,0 +1,49 @@
+.git
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
+config/.env
+**/.env
+**/.env.*
+
+# Dependencies and package-manager caches
+node_modules
+**/node_modules
+.npm
+.yarn
+.pnpm-store
+
+# Build outputs
+dist
+build
+out
+.next
+**/dist
+**/build
+**/.next
+coverage
+**/coverage
+.turbo
+**/.turbo
+
+# Python caches
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.venv
+venv
+
+# Local runtime data
+postgres_data
+redis_data
+
+# Repo docs and test artifacts not needed for images
+docs
+test

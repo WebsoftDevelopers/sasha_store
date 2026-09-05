@@ -1,0 +1,47 @@
+#!/usr/bin/env sh
+set -eu
+
+blocked_files=$(
+  git diff --cached --name-only --diff-filter=ACMR |
+    awk '
+      {
+        n = split($0, parts, "/")
+        base = parts[n]
+        if (base == ".env") { print; next }
+        if (base ~ /^\.env\./ && base != ".env.example") { print; next }
+        if (base ~ /\.env$/) { print; next }
+        if (base ~ /\.env\./ && base !~ /\.env\.example$/) { print; next }
+      }
+    '
+)
+
+if [ -n "$blocked_files" ]; then
+  echo "Commit blocked: env files must not be committed."
+  echo "$blocked_files"
+  echo
+  echo "Keep real values in ignored local files, for example config/.env."
+  exit 1
+fi
+
+example_with_values=$(
+  git diff --cached --name-only --diff-filter=ACMR |
+    awk '
+      {
+        n = split($0, parts, "/")
+        base = parts[n]
+        if (base == ".env.example" || base ~ /\.env\.example$/) print
+      }
+    ' |
+    while IFS= read -r file; do
+      [ -f "$file" ] || continue
+      if awk -F= '/^[A-Za-z_][A-Za-z0-9_]*=/ && $2 != "" { found=1 } END { exit found ? 0 : 1 }' "$file"; then
+        echo "$file"
+      fi
+    done
+)
+
+if [ -n "$example_with_values" ]; then
+  echo "Commit blocked: env example files must keep empty values."
+  echo "$example_with_values"
+  exit 1
+fi

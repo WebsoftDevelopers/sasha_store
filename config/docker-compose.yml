@@ -1,0 +1,208 @@
+name: sasha-store
+
+x-service-env-file: &service-env-file
+  - ./.env
+
+x-api-env: &api-env
+  APP_NAME: Sasha Store API
+  PORT: ${API_PORT:-8000}
+  NODE_ENV: ${NODE_ENV:-development}
+  API_PREFIX: ${API_PREFIX:-api}
+  FRONTEND_URL: ${API_FRONTEND_URL:-${FRONTEND_URL:-http://localhost:3000}}
+  DATABASE_URL: postgresql://${API_POSTGRES_USER:-${POSTGRES_USER:-sasha}}:${API_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD:-sasha}}@postgres:5432/${API_POSTGRES_DB:-${POSTGRES_DB:-sasha_store}}
+  DIRECT_URL: postgresql://${API_POSTGRES_USER:-${POSTGRES_USER:-sasha}}:${API_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD:-sasha}}@postgres:5432/${API_POSTGRES_DB:-${POSTGRES_DB:-sasha_store}}
+  SUPABASE_URL: ${API_SUPABASE_URL:-${SUPABASE_URL:-}}
+  SUPABASE_ANON_KEY: ${API_SUPABASE_ANON_KEY:-${SUPABASE_ANON_KEY:-}}
+  SUPABASE_PUBLISHABLE_KEY: ${API_SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_PUBLISHABLE_KEY:-}}
+  SUPABASE_SERVICE_ROLE_KEY: ${API_SUPABASE_SERVICE_ROLE_KEY:-${SUPABASE_SERVICE_ROLE_KEY:-}}
+  SUPABASE_SECRET_KEY: ${API_SUPABASE_SECRET_KEY:-${SUPABASE_SECRET_KEY:-}}
+  SUPABASE_JWT_SECRET: ${API_SUPABASE_JWT_SECRET:-${SUPABASE_JWT_SECRET:-}}
+  SUPABASE_JWKS_URL: ${API_SUPABASE_JWKS_URL:-${SUPABASE_JWKS_URL:-}}
+  CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-${CLOUDINARY_CLOUD_NAME:-}}
+  CLOUDINARY_FOLDER: ${NEXT_PUBLIC_CLOUDINARY_FOLDER:-${CLOUDINARY_FOLDER:-sasha-store/products}}
+  RUN_SEED: ${RUN_SEED:-false}
+
+x-web-env: &web-env
+  PORT: 3000
+  HOSTNAME: 0.0.0.0
+  NODE_ENV: ${NODE_ENV:-development}
+  NEXT_TELEMETRY_DISABLED: "1"
+  NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+  NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-}
+  NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET:-}
+  NEXT_PUBLIC_CLOUDINARY_FOLDER: ${NEXT_PUBLIC_CLOUDINARY_FOLDER:-sasha-store/products}
+
+x-web-build-args: &web-build-args
+  NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+  NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-}
+  NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET:-}
+  NEXT_PUBLIC_CLOUDINARY_FOLDER: ${NEXT_PUBLIC_CLOUDINARY_FOLDER:-sasha-store/products}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: *service-env-file
+    environment:
+      POSTGRES_USER: ${API_POSTGRES_USER:-${POSTGRES_USER:-sasha}}
+      POSTGRES_PASSWORD: ${API_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD:-sasha}}
+      POSTGRES_DB: ${API_POSTGRES_DB:-${POSTGRES_DB:-sasha_store}}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${API_POSTGRES_USER:-${POSTGRES_USER:-sasha}} -d ${API_POSTGRES_DB:-${POSTGRES_DB:-sasha_store}}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles: [tools]
+    env_file: *service-env-file
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  adminer:
+    image: adminer:4
+    restart: unless-stopped
+    profiles: [tools]
+    env_file: *service-env-file
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    profiles: [tools]
+    env_file: *service-env-file
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+
+  api:
+    build:
+      context: ..
+      dockerfile: ${COMPOSE_DOCKERFILE:-config/Dockerfile.dev}
+      target: api
+    restart: unless-stopped
+    env_file: *service-env-file
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *api-env
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "500"
+      TSC_WATCHFILE: PriorityPollingInterval
+      TSC_WATCHDIRECTORY: RecursiveDirectoryUsingDynamicPriorityPolling
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ../apis:/app
+      - api_node_modules:/app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  web:
+    build:
+      context: ..
+      dockerfile: ${COMPOSE_DOCKERFILE:-config/Dockerfile.dev}
+      target: web
+      args:
+        <<: *web-build-args
+    restart: unless-stopped
+    env_file: *service-env-file
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      <<: *web-env
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "500"
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    volumes:
+      - ../web:/app
+      - web_node_modules:/app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  mobile:
+    build:
+      context: ..
+      dockerfile: ${COMPOSE_DOCKERFILE:-config/Dockerfile.dev}
+      target: mobile
+    restart: unless-stopped
+    env_file: *service-env-file
+    environment:
+      PORT: 3001
+      NODE_ENV: ${NODE_ENV:-development}
+    ports:
+      - "${MOBILE_PORT:-3001}:3001"
+    volumes:
+      - ../mobile:/app
+      - mobile_node_modules:/app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3001/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  agentic-ai:
+    build:
+      context: ..
+      dockerfile: ${COMPOSE_DOCKERFILE:-config/Dockerfile.dev}
+      target: agent
+    restart: unless-stopped
+    env_file: *service-env-file
+    environment:
+      PORT: 8001
+    ports:
+      - "${AGENTIC_AI_PORT:-8001}:8001"
+    volumes:
+      - ../agent:/app
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  postgres_data:
+  redis_data:
+  api_node_modules:
+  web_node_modules:
+  mobile_node_modules:

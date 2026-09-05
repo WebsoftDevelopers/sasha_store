@@ -1,0 +1,110 @@
+# syntax=docker/dockerfile:1
+
+# API=====================================================================================================================================
+FROM node:22-alpine AS api-base
+WORKDIR /app
+
+FROM api-base AS api-deps
+COPY apis/package.json apis/package-lock.json ./
+COPY apis/prisma ./prisma
+COPY apis/prisma.config.ts ./
+RUN npm ci
+
+FROM api-deps AS api-build
+COPY apis ./
+RUN npm run build
+
+FROM node:22-alpine AS api
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nestjs
+COPY --from=api-build /app/package.json /app/package-lock.json ./
+COPY --from=api-build /app/prisma ./prisma
+COPY --from=api-build /app/prisma.config.ts ./
+COPY --from=api-build /app/generated ./generated
+COPY --from=api-build /app/dist ./dist
+COPY config/scripts/api-entrypoint.sh /usr/local/bin/api-entrypoint.sh
+RUN npm ci --omit=dev && \
+    npm install prisma@^7.9.1 tsx@^4.23.1 --no-save && \
+    chmod +x /usr/local/bin/api-entrypoint.sh && \
+    chown -R nestjs:nodejs /app
+USER nestjs
+EXPOSE 8000
+ENTRYPOINT ["api-entrypoint.sh"]
+CMD ["node", "dist/src/main.js"]
+
+# Web=====================================================================================================================================
+FROM node:22-bookworm-slim AS web-base
+WORKDIR /app
+
+FROM web-base AS web-deps
+COPY web/package.json web/package-lock.json ./
+RUN npm ci --include=optional
+
+FROM web-deps AS web-build
+COPY web ./
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+ARG NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+ARG NEXT_PUBLIC_CLOUDINARY_FOLDER
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=$NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+ENV NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=$NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+ENV NEXT_PUBLIC_CLOUDINARY_FOLDER=$NEXT_PUBLIC_CLOUDINARY_FOLDER
+RUN npm run build
+
+FROM node:22-bookworm-slim AS web
+WORKDIR /app
+ENV NODE_ENV=production
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 --gid nodejs nextjs
+COPY --from=web-build /app/public ./public
+COPY --from=web-build --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=web-build --chown=nextjs:nodejs /app/.next/static ./.next/static
+USER nextjs
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+CMD ["node", "server.js"]
+
+# Mobile=====================================================================================================================================
+FROM node:22-alpine AS mobile-base
+WORKDIR /app
+
+FROM mobile-base AS mobile-deps
+COPY mobile/package.json ./
+RUN npm install
+
+FROM mobile-deps AS mobile-build
+COPY mobile/tsconfig.json ./
+COPY mobile/src ./src
+RUN npm run build
+
+FROM node:22-alpine AS mobile
+WORKDIR /app
+ENV NODE_ENV=production
+COPY mobile/package.json ./
+RUN npm install --omit=dev
+COPY --from=mobile-build /app/dist ./dist
+EXPOSE 3001
+CMD ["node", "dist/index.js"]
+
+# Agent=====================================================================================================================================
+FROM python:3.12-slim AS agent-base
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+COPY agent/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY agent/main.py .
+EXPOSE 8001
+
+FROM agent-base AS agent
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
