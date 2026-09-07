@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -16,6 +17,7 @@ import { SupabaseJwtGuard } from '../../common/guards/supabase-jwt.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { SupabaseJwtPayload } from '../../common/guards/supabase-jwt.guard';
 import { UsersService } from '../users/users.service';
+import { VendorStatus } from '../../../generated/prisma/client';
 
 @ApiTags('shops')
 @Controller('shops')
@@ -65,7 +67,33 @@ export class ShopsController {
   @UseGuards(SupabaseJwtGuard)
   async submitVerification(@CurrentUser() user: SupabaseJwtPayload) {
     const dbUser = await this.usersService.ensureFromJwt(user);
-    return this.shopsService.submitVerification(dbUser.id);
+    return this.shopsService.resubmit(dbUser.id);
+  }
+
+  @Post('me/resubmit')
+  @ApiBearerAuth()
+  @UseGuards(SupabaseJwtGuard)
+  async resubmit(
+    @CurrentUser() user: SupabaseJwtPayload,
+    @Body() dto: UpdateShopDto,
+  ) {
+    const dbUser = await this.usersService.ensureFromJwt(user);
+    return this.shopsService.resubmit(dbUser.id, dto);
+  }
+
+  @Get('admin')
+  @ApiBearerAuth()
+  @UseGuards(SupabaseJwtGuard)
+  async adminList(
+    @CurrentUser() user: SupabaseJwtPayload,
+    @Query('status') status?: VendorStatus,
+  ) {
+    const dbUser = await this.usersService.ensureFromJwt(user);
+    const validStatus = status && Object.values(VendorStatus).includes(status);
+    return this.shopsService.listAdmin(
+      dbUser.role === 'ADMIN',
+      validStatus ? status : undefined,
+    );
   }
 
   @Get('admin/pending')
@@ -73,24 +101,86 @@ export class ShopsController {
   @UseGuards(SupabaseJwtGuard)
   async pending(@CurrentUser() user: SupabaseJwtPayload) {
     const dbUser = await this.usersService.ensureFromJwt(user);
-    return this.shopsService.listPending(dbUser.role === 'ADMIN');
+    return this.shopsService.listAdmin(
+      dbUser.role === 'ADMIN',
+      VendorStatus.PENDING,
+    );
   }
 
-  @Post('admin/:id/verify')
+  @Get('admin/:id')
   @ApiBearerAuth()
   @UseGuards(SupabaseJwtGuard)
-  async verify(
+  async adminDetail(
     @CurrentUser() user: SupabaseJwtPayload,
-    @Param('id') id: string,
-    @Query('approve') approve = 'true',
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const dbUser = await this.usersService.ensureFromJwt(user);
+    return this.shopsService.getAdmin(dbUser.role === 'ADMIN', id);
+  }
+
+  @Post('admin/:id/approve')
+  @ApiBearerAuth()
+  @UseGuards(SupabaseJwtGuard)
+  async approve(
+    @CurrentUser() user: SupabaseJwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() body?: { note?: string },
   ) {
     const dbUser = await this.usersService.ensureFromJwt(user);
-    return this.shopsService.verifyShop(
+    return this.shopsService.approve(
       dbUser.role === 'ADMIN',
+      dbUser.id,
       id,
-      approve !== 'false',
       body?.note,
+    );
+  }
+
+  @Post('admin/:id/reject')
+  @ApiBearerAuth()
+  @UseGuards(SupabaseJwtGuard)
+  async reject(
+    @CurrentUser() user: SupabaseJwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body()
+    body?: { reason?: string; comment?: string; missingDocuments?: string[] },
+  ) {
+    const dbUser = await this.usersService.ensureFromJwt(user);
+    return this.shopsService.reject(dbUser.role === 'ADMIN', dbUser.id, id, body);
+  }
+
+  @Post('admin/:id/suspend')
+  @ApiBearerAuth()
+  @UseGuards(SupabaseJwtGuard)
+  async suspend(
+    @CurrentUser() user: SupabaseJwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body?: { comment?: string },
+  ) {
+    const dbUser = await this.usersService.ensureFromJwt(user);
+    return this.shopsService.setStatus(
+      dbUser.role === 'ADMIN',
+      dbUser.id,
+      id,
+      VendorStatus.SUSPENDED,
+      body?.comment,
+    );
+  }
+
+  @Post('admin/:id/disable')
+  @ApiBearerAuth()
+  @UseGuards(SupabaseJwtGuard)
+  async disable(
+    @CurrentUser() user: SupabaseJwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body?: { comment?: string },
+  ) {
+    const dbUser = await this.usersService.ensureFromJwt(user);
+    return this.shopsService.setStatus(
+      dbUser.role === 'ADMIN',
+      dbUser.id,
+      id,
+      VendorStatus.DISABLED,
+      body?.comment,
     );
   }
 }

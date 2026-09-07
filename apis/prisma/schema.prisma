@@ -24,11 +24,20 @@ enum AuthProvider {
   google
 }
 
-enum VerificationStatus {
-  UNVERIFIED
+enum VendorStatus {
+  NONE
   PENDING
-  VERIFIED
+  APPROVED
   REJECTED
+  SUSPENDED
+  DISABLED
+}
+
+enum MediaAssetType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  BLOB
 }
 
 enum OrderStatus {
@@ -51,6 +60,7 @@ model User {
   updatedAt    DateTime     @updatedAt @map("updated_at")
 
   shop           Shop?
+  mediaAssets    MediaAsset[]
   ratings        Rating[]
   ordersBought   Order[]      @relation("BuyerOrders")
 
@@ -58,36 +68,96 @@ model User {
 }
 
 model Shop {
-  id                 String             @id @default(uuid()) @db.Uuid
-  ownerId            String             @unique @map("owner_id") @db.Uuid
-  name               String
-  slug               String             @unique
-  description        String?
-  logoUrl            String?            @map("logo_url")
-  legalName          String             @map("legal_name")
-  cacNumber          String             @map("cac_number")
-  tin                String?
-  businessAddress    String             @map("business_address")
-  city               String
-  state              String
-  phone              String
-  email              String
-  cacDocumentUrl     String?            @map("cac_document_url")
-  idDocumentUrl      String?            @map("id_document_url")
-  proofOfAddressUrl  String?            @map("proof_of_address_url")
-  verificationStatus VerificationStatus @default(UNVERIFIED) @map("verification_status")
-  isVerified         Boolean            @default(false) @map("is_verified")
-  verificationNote   String?            @map("verification_note")
-  verifiedAt         DateTime?          @map("verified_at")
-  createdAt          DateTime           @default(now()) @map("created_at")
-  updatedAt          DateTime           @updatedAt @map("updated_at")
+  id                              String       @id @default(uuid()) @db.Uuid
+  ownerId                         String       @unique @map("owner_id") @db.Uuid
+  name                            String
+  slug                            String       @unique
+  description                     String?
+  logoUrl                         String?      @map("logo_url")
+  bannerUrl                       String?      @map("banner_url")
+  category                        String?
+  ownerFirstName                  String?      @map("owner_first_name")
+  ownerLastName                   String?      @map("owner_last_name")
+  ownerEmail                      String?      @map("owner_email")
+  ownerPhone                      String?      @map("owner_phone")
+  alternativePhone                String?      @map("alternative_phone")
+  identificationType              String?      @map("identification_type")
+  identificationNumber            String?      @map("identification_number")
+  legalName                       String       @map("legal_name")
+  registeredBusinessName          String?      @map("registered_business_name")
+  cacNumber                       String       @map("cac_number")
+  businessRegistrationType        String?      @map("business_registration_type")
+  tin                             String?
+  registrationDate                DateTime?    @map("registration_date") @db.Date
+  businessAddress                 String       @map("business_address")
+  country                         String?      @default("Nigeria")
+  city                            String
+  state                           String
+  lga                             String?
+  streetAddress                   String?      @map("street_address")
+  postalCode                      String?      @map("postal_code")
+  latitude                        Decimal?     @db.Decimal(10, 7)
+  longitude                       Decimal?     @db.Decimal(10, 7)
+  phone                           String
+  email                           String
+  businessPhone                   String?      @map("business_phone")
+  businessEmail                   String?      @map("business_email")
+  website                         String?
+  socialLinks                     Json?        @map("social_links")
+  cacDocumentUrl                  String?      @map("cac_document_url")
+  idDocumentUrl                   String?      @map("id_document_url")
+  proofOfAddressUrl               String?      @map("proof_of_address_url")
+  businessRegistrationDocumentUrl String?      @map("business_registration_document_url")
+  taxCertificateUrl               String?      @map("tax_certificate_url")
+  additionalDocumentUrls          Json?        @map("additional_document_urls")
+  vendorStatus                    VendorStatus @default(NONE) @map("vendor_status")
+  isVerified                      Boolean      @default(false) @map("is_verified")
+  adminComment                    String?      @map("admin_comment")
+  rejectionReason                 String?      @map("rejection_reason")
+  missingDocuments                Json?        @map("missing_documents")
+  reviewedAt                      DateTime?    @map("reviewed_at")
+  reviewedById                    String?      @map("reviewed_by_id") @db.Uuid
+  createdAt                       DateTime     @default(now()) @map("created_at")
+  updatedAt                       DateTime     @updatedAt @map("updated_at")
 
   owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   products Product[]
   orders   Order[]
 
-  @@index([verificationStatus])
+  @@index([vendorStatus])
   @@map("shops")
+}
+
+model MediaAsset {
+  id           String         @id @default(uuid()) @db.Uuid
+  ownerId      String         @map("owner_id") @db.Uuid
+  assetType    MediaAssetType @map("asset_type")
+  context      String?
+  entityType   String?        @map("entity_type")
+  entityId     String?        @map("entity_id") @db.Uuid
+  url          String
+  secureUrl    String?        @map("secure_url")
+  publicId     String         @unique @map("public_id")
+  resourceType String         @map("resource_type")
+  format       String?
+  mimeType     String?        @map("mime_type")
+  bytes        Int?
+  width        Int?
+  height       Int?
+  duration     Decimal?       @db.Decimal(10, 3)
+  provider     String         @default("cloudinary")
+  folder       String?
+  metadata     Json?
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([assetType])
+  @@index([context])
+  @@index([entityType, entityId])
+  @@map("media_assets")
 }
 
 model Product {

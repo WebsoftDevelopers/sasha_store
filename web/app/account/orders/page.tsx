@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/browser-client";
 import { ordersApi, type Order, type OrderStatus } from "@/lib/api/orders-api";
+import { shopsApi } from "@/lib/api/shops-api";
 
 const statuses: OrderStatus[] = [
   "PENDING",
@@ -34,12 +35,15 @@ export default function OrdersPage() {
       } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Sign in to view orders");
       setToken(session.access_token);
-      const [myPurchases, mySales] = await Promise.all([
-        ordersApi.purchases(session.access_token),
-        ordersApi.sales(session.access_token),
-      ]);
+      const myPurchases = await ordersApi.purchases(session.access_token);
+      const shop = await shopsApi.mine(session.access_token).catch(() => null);
+      const mySales =
+        shop?.vendorStatus === "APPROVED"
+          ? await ordersApi.sales(session.access_token)
+          : [];
       setPurchases(myPurchases);
       setSales(mySales);
+      if (shop?.vendorStatus !== "APPROVED") setTab("purchases");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load orders");
     } finally {

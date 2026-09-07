@@ -19,14 +19,14 @@ function SearchFallback() {
 }
 
 const iconBtn =
-  "relative inline-flex h-11 w-11 shrink-0 items-center justify-center border border-[var(--color-border)] text-[22px] text-[var(--color-muted)] transition-colors hover:border-[var(--color-brand)] hover:text-[var(--color-brand-deep)]";
+  "relative inline-flex h-11 w-11 shrink-0 items-center justify-center border border-[var(--color-border)] text-[22px] text-[var(--color-brand-light)] transition-colors hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]";
 
 export default function Navbar() {
   const pathname = usePathname();
   const { itemCount } = useCart();
 
   return (
-    <header className="sticky top-0 z-[100] overflow-hidden border-b border-white/10 bg-[rgba(10,10,10,0.38)] backdrop-blur-md">
+    <header className="sticky top-0 z-[100] overflow-hidden bg-[rgba(10,10,10,0.38)] backdrop-blur-md">
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-[position:58%_0%] opacity-45"
         style={{ backgroundImage: "url('/hero/fragrance1-hero.jpg')" }}
@@ -35,10 +35,10 @@ export default function Navbar() {
       <div className="relative mx-auto grid w-[min(1200px,100%)] grid-cols-[1fr_minmax(0,560px)_1fr] items-center gap-3 px-6 py-3 max-[768px]:grid-cols-[auto_minmax(0,1fr)_auto] max-[768px]:px-4">
         <div className="justify-self-start">
           <SashaLogo
+            href="/"
             size={34}
             markClassName="opacity-55 saturate-75"
             wordmarkClassName="text-[20px] max-[640px]:hidden"
-            wordmarkGradient={false}
           />
         </div>
 
@@ -55,7 +55,7 @@ export default function Navbar() {
             aria-current={pathname.startsWith("/contact") ? "page" : undefined}
             className={`${iconBtn}${
               pathname.startsWith("/contact")
-                ? " border-[var(--color-brand)] text-[var(--color-brand-deep)]"
+                ? " border-[var(--color-brand)] text-[var(--color-brand)]"
                 : ""
             }`}
           >
@@ -68,7 +68,7 @@ export default function Navbar() {
             aria-current={pathname.startsWith("/cart") ? "page" : undefined}
             className={`${iconBtn}${
               pathname.startsWith("/cart")
-                ? " border-[var(--color-brand)] text-[var(--color-brand-deep)]"
+                ? " border-[var(--color-brand)] text-[var(--color-brand)]"
                 : ""
             }`}
           >

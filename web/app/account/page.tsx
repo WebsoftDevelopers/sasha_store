@@ -70,13 +70,18 @@ export default function AccountPage() {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-1">
         {[
           {
-            title: "Create or manage shop",
-            href: "/account/shop",
-            body: "Set up one shop page, business details, and public seller profile.",
+            title: "Vendor application",
+            href: "/vendor/apply",
+            body: "Apply to register one store and submit business details for review.",
           },
           {
-            title: "Seller products",
-            href: "/account/products",
+            title: "Vendor dashboard",
+            href: "/vendor/dashboard",
+            body: "Open the approved vendor workspace for store, products, and sales.",
+          },
+          {
+            title: "Vendor products",
+            href: "/vendor/products",
             body: "Post products with images, categories, prices, and stock.",
           },
           {

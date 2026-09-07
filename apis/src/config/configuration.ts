@@ -27,6 +27,24 @@ export default () => ({
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET,
-    folder: process.env.CLOUDINARY_FOLDER || 'sasha-store/products',
+    folder: process.env.CLOUDINARY_FOLDER || 'sasha-store',
+  },
+  cache: {
+    provider: 'upstash',
+    redisUrl: process.env.UPSTASH_REDIS_URL,
+    redisToken: process.env.UPSTASH_REDIS_TOKEN,
+    supabaseCacheEnabled: process.env.SUPABASE_DB_CACHE_ENABLED === 'true',
+  },
+  email: {
+    provider: 'namecheap',
+    host: process.env.NAMECHEAP_SMTP_HOST,
+    port: Number(process.env.NAMECHEAP_SMTP_PORT) || 587,
+    user: process.env.NAMECHEAP_SMTP_USER,
+    password: process.env.NAMECHEAP_SMTP_PASSWORD,
+    from: process.env.EMAIL_FROM,
+  },
+  events: {
+    queueProvider: 'bullmq',
+    redisUrl: process.env.BULLMQ_REDIS_URL || process.env.UPSTASH_REDIS_URL,
   },
 });

@@ -74,6 +74,7 @@ textarea {
 
 button {
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 @keyframes fade-up {
@@ -125,6 +126,48 @@ button {
   }
 }
 
+@keyframes button-pop {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  42% {
+    transform: translateY(-4px) scale(1.045);
+  }
+  72% {
+    transform: translateY(-2px) scale(1.018);
+  }
+  100% {
+    transform: translateY(-3px) scale(1.03);
+  }
+}
+
+@keyframes button-glint {
+  0% {
+    transform: translateX(-130%) skewX(-18deg);
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.58;
+  }
+  100% {
+    transform: translateX(130%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes section-soft-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
 .animate-fade-up {
   animation: fade-up 0.7s var(--ease-out) both;
 }
@@ -145,6 +188,14 @@ button {
   animation: float-slow 7s ease-in-out infinite;
 }
 
+[data-aos] {
+  transition-timing-function: var(--ease-out) !important;
+}
+
+.motion-section {
+  animation-timing-function: var(--ease-out);
+}
+
 .gold-text,
 .brand-text {
   background: var(--gradient-brand);
@@ -156,15 +207,19 @@ button {
 }
 
 .brand-fill {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   border: 1px solid var(--color-brand-deep);
   background: var(--gradient-brand);
   background-size: 200% 200%;
   color: var(--color-on-brand);
   transition:
-    filter 160ms ease,
-    box-shadow 160ms ease,
-    transform 120ms ease,
-    background-position 400ms ease;
+    filter 180ms ease,
+    box-shadow 220ms ease,
+    transform 180ms var(--ease-out),
+    background-position 420ms ease;
+  will-change: transform;
 }
 
 .brand-fill:hover:not(:disabled) {
@@ -172,6 +227,40 @@ button {
   background-size: 200% 200%;
   box-shadow: var(--glow-gold);
   filter: brightness(1.03);
+  animation: button-pop 360ms var(--ease-out) both;
+}
+
+.brand-fill:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 80ms;
+}
+
+.brand-fill::after,
+.brand-outline::after,
+.auth-button::after,
+.auth-button-secondary::after,
+.product-card__add::after {
+  content: "";
+  position: absolute;
+  inset: -35% -55%;
+  z-index: 1;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.52),
+    transparent
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+
+.brand-fill:hover::after,
+.brand-outline:hover::after,
+.auth-button:hover::after,
+.auth-button-secondary:hover::after,
+.product-card__add:hover::after {
+  animation: button-glint 680ms var(--ease-out);
 }
 
 .brand-soft {
@@ -179,17 +268,30 @@ button {
 }
 
 .brand-outline {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--color-brand) 50%, transparent);
   background: transparent;
   color: var(--color-brand-deep);
   transition:
     border-color 160ms ease,
-    background 160ms ease;
+    background 160ms ease,
+    box-shadow 220ms ease,
+    transform 180ms var(--ease-out);
+  will-change: transform;
 }
 
 .brand-outline:hover {
   border-color: var(--color-brand);
   background-image: var(--gradient-brand-soft);
+  box-shadow: 0 10px 30px rgba(201, 162, 39, 0.14);
+  animation: button-pop 360ms var(--ease-out) both;
+}
+
+.brand-outline:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 80ms;
 }
 
 .gold-rule {
@@ -251,6 +353,9 @@ button {
 }
 
 .auth-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: inline-flex;
   width: 100%;
   height: 44px;
@@ -266,15 +371,22 @@ button {
   letter-spacing: 0.04em;
   text-decoration: none;
   transition:
-    filter 160ms ease,
-    box-shadow 160ms ease,
-    transform 120ms ease;
+    filter 180ms ease,
+    box-shadow 220ms ease,
+    transform 180ms var(--ease-out);
+  will-change: transform;
 }
 
 .auth-button:hover:not(:disabled) {
   background: var(--gradient-brand-hover);
   box-shadow: var(--glow-gold);
   filter: brightness(1.03);
+  animation: button-pop 360ms var(--ease-out) both;
+}
+
+.auth-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 80ms;
 }
 
 .auth-button:disabled {
@@ -283,6 +395,9 @@ button {
 }
 
 .auth-button-secondary {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   background: transparent;
   color: var(--color-ink);
   border-color: var(--color-border);
@@ -292,6 +407,49 @@ button {
   background: var(--color-surface-elevated);
   border-color: var(--color-brand);
   color: var(--color-ink);
+}
+
+button:not(:disabled),
+a.brand-fill,
+a.brand-outline,
+a.auth-button,
+a.auth-button-secondary {
+  transform: translateZ(0);
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 220ms ease,
+    filter 180ms ease,
+    transform 180ms var(--ease-out);
+  will-change: transform;
+}
+
+button:hover:not(:disabled),
+a.brand-fill:hover,
+a.brand-outline:hover,
+a.auth-button:hover,
+a.auth-button-secondary:hover {
+  transform: translateY(-3px) scale(1.03);
+  animation: button-pop 360ms var(--ease-out) both;
+}
+
+button:active:not(:disabled),
+a.brand-fill:active,
+a.brand-outline:active,
+a.auth-button:active,
+a.auth-button-secondary:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 80ms;
+}
+
+button:focus-visible,
+a.brand-fill:focus-visible,
+a.brand-outline:focus-visible,
+a.auth-button:focus-visible,
+a.auth-button-secondary:focus-visible {
+  outline: 2px solid rgba(232, 212, 138, 0.82);
+  outline-offset: 3px;
 }
 
 .auth-error {
@@ -413,6 +571,9 @@ button {
 }
 
 .product-card__add {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   margin-top: 8px;
   height: 36px;
   width: 100%;
@@ -425,14 +586,16 @@ button {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   transition:
-    filter 160ms ease,
-    box-shadow 160ms ease,
-    transform 120ms ease;
+    filter 180ms ease,
+    box-shadow 220ms ease,
+    transform 180ms var(--ease-out);
+  will-change: transform;
 }
 
 .product-card__add:hover:not(:disabled) {
   background: var(--gradient-brand-hover);
   box-shadow: var(--glow-gold);
+  animation: button-pop 360ms var(--ease-out) both;
 }
 
 .product-card__add:active:not(:disabled) {
@@ -443,4 +606,31 @@ button {
   background: var(--color-success);
   border-color: var(--color-success);
   color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+
+  button:hover:not(:disabled),
+  a.brand-fill:hover,
+  a.brand-outline:hover,
+  a.auth-button:hover,
+  a.auth-button-secondary:hover,
+  .brand-fill:hover:not(:disabled),
+  .brand-outline:hover,
+  .auth-button:hover:not(:disabled),
+  .product-card__add:hover:not(:disabled) {
+    transform: none;
+  }
 }

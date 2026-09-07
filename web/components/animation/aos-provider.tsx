@@ -9,10 +9,15 @@ export function AosProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     AOS.init({
-      duration: 720,
+      duration: 760,
       easing: "ease-out-cubic",
       once: true,
       offset: 80,
+      delay: 40,
+      anchorPlacement: "top-bottom",
+      debounceDelay: 40,
+      throttleDelay: 80,
+      disable: () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     });
   }, []);
 

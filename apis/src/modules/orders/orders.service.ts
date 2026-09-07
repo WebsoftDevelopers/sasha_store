@@ -6,11 +6,15 @@ import {
 } from '@nestjs/common';
 import { OrderStatus, Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { ShopsService } from '../shops/shops.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly shopsService: ShopsService,
+  ) {}
 
   async create(buyerId: string, dto: CreateOrderDto) {
     const productIds = dto.items.map((i) => i.productId);
@@ -97,6 +101,7 @@ export class OrdersService {
   }
 
   async mySales(ownerId: string) {
+    await this.shopsService.requireApprovedMine(ownerId);
     return this.prisma.order.findMany({
       where: { shop: { ownerId } },
       orderBy: { createdAt: 'desc' },
@@ -112,6 +117,7 @@ export class OrdersService {
     orderId: string,
     status: OrderStatus,
   ) {
+    await this.shopsService.requireApprovedMine(ownerId);
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, shop: { ownerId } },
     });
@@ -129,12 +135,13 @@ export class OrdersService {
       include: { _count: { select: { products: true, orders: true } } },
     });
 
+    const isApprovedVendor = shop?.vendorStatus === 'APPROVED';
     const [purchases, sales, productCount] = await Promise.all([
       this.prisma.order.count({ where: { buyerId: userId } }),
-      shop
+      shop && isApprovedVendor
         ? this.prisma.order.count({ where: { shopId: shop.id } })
         : Promise.resolve(0),
-      shop
+      shop && isApprovedVendor
         ? this.prisma.product.count({ where: { shopId: shop.id } })
         : Promise.resolve(0),
     ]);

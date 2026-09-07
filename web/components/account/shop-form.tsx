@@ -44,6 +44,13 @@ export function ShopForm({ existing, onSaved }: Props) {
 
       const payload = {
         name: values.name.trim(),
+        ownerFirstName: values.legalName.trim().split(/\s+/)[0] || "Owner",
+        ownerLastName:
+          values.legalName.trim().split(/\s+/).slice(1).join(" ") || "Seller",
+        ownerEmail: values.email.trim(),
+        ownerPhone: values.phone.trim(),
+        identificationType: "Business registration",
+        identificationNumber: values.cacNumber.trim(),
         legalName: values.legalName.trim(),
         cacNumber: values.cacNumber.trim(),
         tin: values.tin.trim() || undefined,

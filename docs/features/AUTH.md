@@ -27,14 +27,16 @@
 - `GET /api/users/me` — same as auth/me
 - `PATCH /api/users/me` — update `fullName` / `avatarUrl`
 
-## Image uploads (Cloudinary)
-Flow: **Frontend uploads directly to Cloudinary** (unsigned preset) → frontend sends `imageUrl` to Nest when creating products/shops → **DB stores URL only**.
+## Media uploads (Cloudinary)
+Flow: **Frontend uploads directly to Cloudinary** (unsigned preset) → frontend records the Cloudinary URL/public ID through Nest → Prisma stores metadata in `media_assets` and feature tables keep URL fields for fast reads.
+
+Cloudinary is the bucket for images, videos, documents, and blobs. PostgreSQL should store metadata and references, not file bytes.
 
 Frontend env:
 ```
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=   # must be UNSIGNED
-NEXT_PUBLIC_CLOUDINARY_FOLDER=sasha-store/products
+NEXT_PUBLIC_CLOUDINARY_FOLDER=sasha-store
 ```
 
 Create the unsigned upload preset in Cloudinary Dashboard → Settings → Upload.

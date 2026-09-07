@@ -53,6 +53,7 @@ export function ProductUploadForm({ onCreated }: Props) {
         const uploaded = await uploadProductImage(
           file,
           session.user.id,
+          session.access_token,
           (progress) => {
             setUploadStatus(progress.message);
           },

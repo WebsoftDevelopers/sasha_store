@@ -4,10 +4,23 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { HiOutlineUserCircle, HiChevronDown } from "react-icons/hi2";
 import { useAuth } from "@/lib/auth/auth-context";
+import { createClient } from "@/lib/supabase/browser-client";
+import { shopsApi, type VendorStatus } from "@/lib/api/shops-api";
+
+function vendorMenuItem(status: VendorStatus | null) {
+  if (status === "APPROVED") {
+    return { href: "/vendor/dashboard", label: "Vendor Dashboard" };
+  }
+  if (status && status !== "NONE") {
+    return { href: "/vendor/application-status", label: "Vendor Application" };
+  }
+  return { href: "/vendor/apply", label: "Become a Vendor" };
+}
 
 export function AccountMenu() {
   const { user, profile, loading, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const [vendorStatus, setVendorStatus] = useState<VendorStatus | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,6 +38,30 @@ export function AccountMenu() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const id = window.setTimeout(() => {
+      if (!user) {
+        setVendorStatus(null);
+        return;
+      }
+      async function loadVendorStatus() {
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const shop = await shopsApi.mine(session.access_token).catch(() => null);
+        if (!cancelled) setVendorStatus(shop?.vendorStatus ?? null);
+      }
+      void loadVendorStatus();
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(id);
+    };
+  }, [user]);
+
   if (loading) {
     return (
       <div
@@ -39,7 +76,7 @@ export function AccountMenu() {
       <Link
         href="/auth/login"
         aria-label="Sign in"
-        className="inline-flex h-11 items-center justify-center border border-[var(--color-border)] px-3 text-[12px] font-semibold tracking-[0.08em] text-[var(--color-ink)] uppercase no-underline transition-colors hover:border-[var(--color-brand)] hover:text-[var(--color-brand-deep)]"
+        className="inline-flex h-11 items-center justify-center border border-[var(--color-border)] px-3 text-[12px] font-semibold tracking-[0.08em] text-[var(--color-brand-light)] uppercase no-underline transition-colors hover:border-[var(--color-brand)] hover:text-[var(--color-brand)]"
       >
         Sign in
       </Link>
@@ -57,6 +94,7 @@ export function AccountMenu() {
     .slice(0, 2)
     .map((part: string) => part[0]?.toUpperCase() ?? "")
     .join("");
+  const vendorItem = vendorMenuItem(vendorStatus);
 
   return (
     <div ref={rootRef} className="relative">
@@ -65,9 +103,9 @@ export function AccountMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
-        className={`inline-flex h-11 items-center gap-2 border px-2.5 text-[var(--color-muted)] transition-colors hover:border-[var(--color-brand)] hover:text-[var(--color-brand-deep)] ${
+        className={`inline-flex h-11 items-center gap-2 border px-2.5 text-[var(--color-brand-light)] transition-colors hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] ${
           open
-            ? "border-[var(--color-brand)] text-[var(--color-brand-deep)]"
+            ? "border-[var(--color-brand)] text-[var(--color-brand)]"
             : "border-[var(--color-border)]"
         }`}
       >
@@ -79,7 +117,7 @@ export function AccountMenu() {
             initials || <HiOutlineUserCircle className="text-[16px]" aria-hidden />
           )}
         </span>
-        <span className="hidden max-w-[100px] truncate text-[12px] font-medium text-[var(--color-ink)] sm:inline">
+        <span className="hidden max-w-[100px] truncate text-[12px] font-medium text-[var(--color-brand-light)] sm:inline">
           {displayName}
         </span>
         <span
@@ -136,12 +174,12 @@ export function AccountMenu() {
             Account overview
           </Link>
           <Link
-            href="/account/shop"
+            href={vendorItem.href}
             role="menuitem"
             className="block px-4 py-2.5 text-[13px] text-[var(--color-ink)] no-underline hover:bg-[var(--color-surface-elevated)]"
             onClick={() => setOpen(false)}
           >
-            Seller shop
+            {vendorItem.label}
           </Link>
           <Link
             href="/account/orders"

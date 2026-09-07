@@ -3,6 +3,7 @@ import Link from "next/link";
 
 type SashaLogoProps = {
   href?: string;
+  ariaLabel?: string;
   src?: string;
   size?: number;
   showWordmark?: boolean;
@@ -14,6 +15,7 @@ type SashaLogoProps = {
 
 export function SashaLogo({
   href = "/",
+  ariaLabel = "Go to Shasha Fragrance home page",
   src = "/brand/shasha-logo-transparent.png",
   size = 40,
   showWordmark = true,
@@ -51,7 +53,7 @@ export function SashaLogo({
   if (!href) return mark;
 
   return (
-    <Link href={href} className="inline-flex text-inherit no-underline">
+    <Link href={href} aria-label={ariaLabel} className="inline-flex text-inherit no-underline">
       {mark}
     </Link>
   );

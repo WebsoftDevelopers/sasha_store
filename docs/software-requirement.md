@@ -2,22 +2,34 @@
 
 ## Product Scope
 
-Sasha Store is a fragrance marketplace with customer shopping flows, seller shop management, product catalog management, account security, image uploads, ratings, and orders.
+Sasha Store is a fragrance marketplace with customer shopping flows, vendor/store onboarding, seller shop management, product catalog management, account security, media uploads, ratings, and orders.
 
 ## Core User Roles
 
 - Guest users can browse products, view shops, register, sign in, reset passwords, and verify email.
-- Customers can manage profiles, sessions, carts, orders, and reviews.
-- Sellers can manage shop information and products after authentication.
-- Admin or service users can support privileged backend operations through secure service credentials.
+- Customers can manage profiles, sessions, carts, orders, reviews, favorites, addresses, and vendor applications.
+- Vendors are approved extensions of customer accounts; a vendor is the store owned by that user.
+- Approved vendors can manage store information, products, documents, and seller orders without creating a second account.
+- Admin users can review vendor applications and approve, reject, suspend, or disable stores.
+- Service users can support privileged backend operations through secure service credentials.
 
 ## Functional Requirements
 
 - The web app must provide storefront browsing, product detail pages, cart workflows, authentication screens, account pages, shop pages, and seller product management.
 - The API must expose REST endpoints under `/api` and provide Swagger documentation at `/api/docs`.
 - Authentication must use Supabase JWT validation, with API-side user mirroring through Prisma.
-- Product and shop image uploads must use Cloudinary client uploads and store final URLs in the database.
-- Orders, ratings, shops, users, products, storage, and auth must be modeled as backend modules.
+- Supabase is the source of truth for authentication and PostgreSQL application data.
+- Cloudinary is the bucket/media provider for all images, videos, documents, and blobs.
+- Uploaded media must be recorded in the centralized `media_assets` database table with owner, URL, Cloudinary public ID, media type, context, and optional entity reference.
+- Product images, store logos, store banners, vendor documents, future videos, and blob-style uploads must use the centralized media asset architecture.
+- Orders, ratings, shops, users, products, storage/media, and auth must be modeled as backend modules.
+- Vendor/store status must use `NONE`, `PENDING`, `APPROVED`, `REJECTED`, `SUSPENDED`, and `DISABLED`.
+- Public product and shop browsing must expose approved vendor stores only.
+- Product and seller-order management must require an approved vendor store.
+- Upstash Redis is the external cache/queue Redis provider.
+- Supabase database caching may be enabled where query-level caching is introduced.
+- Namecheap SMTP is the email provider.
+- BullMQ is the event and background-job queue layer.
 - Database migrations must be managed through Prisma.
 - Local development must run through Docker with one centralized env file.
 

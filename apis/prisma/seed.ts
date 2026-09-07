@@ -4,7 +4,7 @@
  * Volume
  * ------
  * - 10 users (each owns 1 shop) + 1 admin (no shop)
- * - 10 shops: 3 VERIFIED, 3 PENDING, 2 UNVERIFIED, 2 REJECTED
+ * - 10 shops: 3 APPROVED, 3 PENDING, 2 NONE, 2 REJECTED
  * - 100 products per shop → 1,000 products
  * - 10 ratings per product → 10,000 ratings (one from each of the 10 sellers)
  * - Orders / sales across all statuses; shop #1 gets a heavy sales book
@@ -23,7 +23,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import {
   PrismaClient,
   AuthProvider,
-  VerificationStatus,
+  VendorStatus,
   OrderStatus,
   UserRole,
 } from "../generated/prisma/client";
@@ -273,7 +273,7 @@ const SHOP_DEFS = [
     slug: "sasha-fragrance-ph",
     owner: "Ada Seller",
     emailLocal: "seller01",
-    status: VerificationStatus.VERIFIED,
+    status: VendorStatus.APPROVED,
     verified: true,
   },
   {
@@ -281,7 +281,7 @@ const SHOP_DEFS = [
     slug: "glow-body-ng",
     owner: "Bola Glow",
     emailLocal: "seller02",
-    status: VerificationStatus.VERIFIED,
+    status: VendorStatus.APPROVED,
     verified: true,
   },
   {
@@ -289,7 +289,7 @@ const SHOP_DEFS = [
     slug: "rivers-essence",
     owner: "Chidi Essence",
     emailLocal: "seller03",
-    status: VerificationStatus.VERIFIED,
+    status: VendorStatus.APPROVED,
     verified: true,
   },
   {
@@ -297,7 +297,7 @@ const SHOP_DEFS = [
     slug: "amber-lane-beauty",
     owner: "Dami Amber",
     emailLocal: "seller04",
-    status: VerificationStatus.PENDING,
+    status: VendorStatus.PENDING,
     verified: false,
   },
   {
@@ -305,7 +305,7 @@ const SHOP_DEFS = [
     slug: "ph-perfume-hub",
     owner: "Efe Hub",
     emailLocal: "seller05",
-    status: VerificationStatus.PENDING,
+    status: VendorStatus.PENDING,
     verified: false,
   },
   {
@@ -313,7 +313,7 @@ const SHOP_DEFS = [
     slug: "trans-amadi-scents",
     owner: "Funke Scents",
     emailLocal: "seller06",
-    status: VerificationStatus.PENDING,
+    status: VendorStatus.PENDING,
     verified: false,
   },
   {
@@ -321,7 +321,7 @@ const SHOP_DEFS = [
     slug: "garden-city-oils",
     owner: "Grace Oils",
     emailLocal: "seller07",
-    status: VerificationStatus.UNVERIFIED,
+    status: VendorStatus.NONE,
     verified: false,
   },
   {
@@ -329,7 +329,7 @@ const SHOP_DEFS = [
     slug: "woji-fragrance-co",
     owner: "Hassan Woji",
     emailLocal: "seller08",
-    status: VerificationStatus.UNVERIFIED,
+    status: VendorStatus.NONE,
     verified: false,
   },
   {
@@ -337,7 +337,7 @@ const SHOP_DEFS = [
     slug: "rejected-sample-shop",
     owner: "Ife Rejected",
     emailLocal: "seller09",
-    status: VerificationStatus.REJECTED,
+    status: VendorStatus.REJECTED,
     verified: false,
     note: "CAC document unreadable — please resubmit.",
   },
@@ -346,7 +346,7 @@ const SHOP_DEFS = [
     slug: "draft-scents-ng",
     owner: "Jide Draft",
     emailLocal: "seller10",
-    status: VerificationStatus.REJECTED,
+    status: VendorStatus.REJECTED,
     verified: false,
     note: "Business address does not match ID.",
   },
@@ -510,8 +510,8 @@ async function main() {
   for (let i = 0; i < sellers.length; i++) {
     const { id: ownerId, email, def } = sellers[i];
     const shopId = randomUUID();
-    const verifiedAt =
-      def.status === VerificationStatus.VERIFIED ? new Date() : null;
+    const reviewedAt =
+      def.status === VendorStatus.APPROVED ? new Date() : null;
 
     await prisma.shop.create({
       data: {
@@ -521,21 +521,41 @@ async function main() {
         slug: def.slug,
         description: `${def.name} — fragrance & beauty from Port Harcourt. Seller manages own logistics.`,
         logoUrl: unsplash("photo-1541643600914-78b084683601", 400, 400),
+        bannerUrl: unsplash("photo-1594035910387-fea47794261f", 1200, 500),
+        category: "Fragrance",
+        ownerFirstName: def.owner.split(" ")[0],
+        ownerLastName: def.owner.split(" ").slice(1).join(" ") || "Seller",
+        ownerEmail: email,
+        ownerPhone: `+23480${String(10000000 + i).slice(0, 8)}`,
+        identificationType: "National ID",
+        identificationNumber: `NIN-${30000000 + i}`,
         legalName: `${def.name} Ltd`,
+        registeredBusinessName: `${def.name} Ltd`,
         cacNumber: `RC-${1000000 + i}`,
+        businessRegistrationType: "Limited Liability Company",
         tin: `${20000000 + i}-0001`,
+        registrationDate: new Date("2024-01-15"),
         businessAddress: `${10 + i} Sample Street, Trans Amadi`,
+        country: "Nigeria",
         city: "Port Harcourt",
         state: "Rivers",
+        lga: "Port Harcourt",
+        streetAddress: `${10 + i} Sample Street, Trans Amadi`,
+        postalCode: "500001",
         phone: `+23480${String(10000000 + i).slice(0, 8)}`,
         email,
+        businessPhone: `+23480${String(10000000 + i).slice(0, 8)}`,
+        businessEmail: email,
+        website: `https://${def.slug}.example.com`,
+        socialLinks: [`https://instagram.com/${def.slug}`],
         cacDocumentUrl: unsplash("photo-1586281380349-632531db7ed4", 800, 600),
         idDocumentUrl: unsplash("photo-1554224155-6726b3ff858f", 800, 600),
         proofOfAddressUrl: unsplash("photo-1560518883-ce09059eeffa", 800, 600),
-        verificationStatus: def.status,
+        vendorStatus: def.status,
         isVerified: def.verified,
-        verifiedAt,
-        verificationNote: "note" in def ? def.note : null,
+        reviewedAt,
+        adminComment: "note" in def ? def.note : null,
+        rejectionReason: "note" in def ? def.note : null,
       },
     });
 

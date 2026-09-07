@@ -35,7 +35,7 @@ export class ProductsService {
   ) {}
 
   async create(ownerId: string, dto: CreateProductDto) {
-    const shop = await this.shopsService.requireMine(ownerId);
+    const shop = await this.shopsService.requireApprovedMine(ownerId);
     return this.prisma.product.create({
       data: {
         shopId: shop.id,
@@ -67,6 +67,7 @@ export class ProductsService {
 
     const where: Prisma.ProductWhereInput = {
       isActive: true,
+      shop: { vendorStatus: 'APPROVED' },
       ...(query.category ? { category: query.category } : {}),
       ...(query.q
         ? {
@@ -127,7 +128,7 @@ export class ProductsService {
   }
 
   async findMine(ownerId: string) {
-    const shop = await this.shopsService.requireMine(ownerId);
+    const shop = await this.shopsService.requireApprovedMine(ownerId);
     return this.prisma.product.findMany({
       where: { shopId: shop.id },
       orderBy: { createdAt: 'desc' },
@@ -139,7 +140,7 @@ export class ProductsService {
 
   async findOnePublic(id: string) {
     const product = await this.prisma.product.findFirst({
-      where: { id, isActive: true },
+      where: { id, isActive: true, shop: { vendorStatus: 'APPROVED' } },
       include: {
         shop: {
           select: {
@@ -170,7 +171,7 @@ export class ProductsService {
   }
 
   async update(id: string, ownerId: string, dto: UpdateProductDto) {
-    const shop = await this.shopsService.requireMine(ownerId);
+    const shop = await this.shopsService.requireApprovedMine(ownerId);
     const existing = await this.prisma.product.findFirst({
       where: { id, shopId: shop.id },
     });
@@ -192,7 +193,7 @@ export class ProductsService {
   }
 
   async remove(id: string, ownerId: string) {
-    const shop = await this.shopsService.requireMine(ownerId);
+    const shop = await this.shopsService.requireApprovedMine(ownerId);
     const existing = await this.prisma.product.findFirst({
       where: { id, shopId: shop.id },
     });

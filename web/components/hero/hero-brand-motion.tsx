@@ -75,7 +75,7 @@ export function HeroBrandMotion({ locationLine }: Props) {
 
       <motion.p
         variants={item}
-        className="gold-text mt-2 mb-0 overflow-hidden whitespace-nowrap border-r border-[var(--color-brand-deep)] pr-1 font-[var(--font-display)] text-[clamp(1.25rem,3.2vw,1.85rem)] font-normal tracking-[0.2em] uppercase"
+        className="gold-text mt-2 mb-0 overflow-hidden whitespace-nowrap border-r border-transparent pr-1 font-[var(--font-display)] text-[clamp(1.25rem,3.2vw,1.85rem)] font-normal tracking-[0.2em] uppercase"
         initial={{ width: 0, opacity: 1 }}
         animate={{ width: "auto", opacity: 1 }}
         transition={{ duration: 1.25, ease: "easeInOut", delay: 0.62 }}
@@ -102,13 +102,13 @@ export function HeroBrandMotion({ locationLine }: Props) {
       >
         <Link
           href="/products"
-          className="brand-fill inline-flex px-7 py-3.5 text-[13px] font-semibold tracking-[0.12em] uppercase no-underline active:scale-[0.98]"
+          className="brand-fill inline-flex !border-transparent px-7 py-3.5 text-[13px] font-semibold tracking-[0.12em] uppercase no-underline active:scale-[0.98]"
         >
           Shop the collection
         </Link>
         <a
           href="#about"
-          className="brand-outline inline-flex px-7 py-3.5 text-[13px] font-semibold tracking-[0.12em] uppercase no-underline"
+          className="brand-outline inline-flex !border-transparent px-7 py-3.5 text-[13px] font-semibold tracking-[0.12em] uppercase no-underline"
         >
           Our story
         </a>

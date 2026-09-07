@@ -53,7 +53,7 @@ export default function Home() {
   return (
     <MarketingShell>
       {/* Hero */}
-      <section className="relative flex min-h-[calc(100svh-120px)] items-center overflow-hidden border-b border-[var(--color-border)] bg-[#f8f3ea]">
+      <section className="relative flex min-h-[calc(100svh-120px)] items-center overflow-hidden bg-[#f8f3ea]">
         <Image
           src="/hero/fragrance1-hero.jpg"
           alt=""

@@ -42,7 +42,7 @@ export default function PublicShopPage() {
           <>
             <div className="border-b border-[var(--color-border)] pb-8">
               <p className="m-0 text-[11px] tracking-[0.22em] text-[var(--color-brand)] uppercase">
-                {shop.isVerified ? "Verified seller" : shop.verificationStatus.toLowerCase()}
+                {shop.isVerified ? "Verified seller" : shop.vendorStatus.toLowerCase()}
               </p>
               <h1 className="mt-2 mb-3 font-[var(--font-display)] text-[44px] font-normal">
                 {shop.name}

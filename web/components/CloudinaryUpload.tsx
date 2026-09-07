@@ -47,18 +47,20 @@ export function CloudinaryUpload({
     setBusy(true);
     try {
       let userId = userIdProp?.trim() || "";
+      let token = "";
       if (!userId) {
         const supabase = createClient();
         const {
           data: { session },
         } = await supabase.auth.getSession();
         userId = session?.user?.id || "";
+        token = session?.access_token || "";
       }
       if (!userId) {
         throw new Error("Sign in required — uploads go under your user folder");
       }
 
-      const result = await uploadProductImage(file, userId, (progress) => {
+      const result = await uploadProductImage(file, userId, token, (progress) => {
         setStatus(progress.message);
       });
       setUploadedUrl(result.url);

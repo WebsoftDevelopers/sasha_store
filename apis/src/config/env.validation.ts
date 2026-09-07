@@ -24,6 +24,15 @@ export const envValidationSchema = Joi.object({
   CLOUDINARY_API_KEY: Joi.string().optional(),
   CLOUDINARY_API_SECRET: Joi.string().optional(),
   CLOUDINARY_FOLDER: Joi.string().optional(),
+  UPSTASH_REDIS_URL: Joi.string().uri().optional().allow(''),
+  UPSTASH_REDIS_TOKEN: Joi.string().optional().allow(''),
+  SUPABASE_DB_CACHE_ENABLED: Joi.boolean().truthy('true').falsy('false').optional(),
+  NAMECHEAP_SMTP_HOST: Joi.string().optional().allow(''),
+  NAMECHEAP_SMTP_PORT: Joi.number().optional(),
+  NAMECHEAP_SMTP_USER: Joi.string().optional().allow(''),
+  NAMECHEAP_SMTP_PASSWORD: Joi.string().optional().allow(''),
+  EMAIL_FROM: Joi.string().optional().allow(''),
+  BULLMQ_REDIS_URL: Joi.string().uri().optional().allow(''),
 })
   .or('SUPABASE_ANON_KEY', 'SUPABASE_PUBLISHABLE_KEY')
   .or('SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SECRET_KEY')
