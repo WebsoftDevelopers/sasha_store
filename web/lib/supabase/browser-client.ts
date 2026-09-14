@@ -7,7 +7,7 @@ export function createClient() {
 
   if (!url || !key) {
     throw new Error(
-      "Missing Supabase env. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY).",
+      "Missing auth env. Set NEXT_PUBLIC_AUTH_URL and NEXT_PUBLIC_AUTH_PUBLIC_KEY, or the compatible NEXT_PUBLIC_SUPABASE_* variables.",
     );
   }
 

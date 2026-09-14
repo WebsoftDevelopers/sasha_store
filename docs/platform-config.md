@@ -25,22 +25,23 @@ The `config` folder is the central control plane for Sasha Store.
 ## External Providers
 
 - Supabase Auth validates users and sessions.
-- Supabase PostgreSQL stores hosted application data.
-- Cloudinary stores uploaded media files. The app stores Cloudinary URLs, public IDs, and metadata in `media_assets`.
-- Upstash Redis backs production caching and BullMQ queues.
-- Supabase database caching can be enabled with `SUPABASE_DB_CACHE_ENABLED`.
+- PostgreSQL stores application data.
+- S3-compatible object storage stores uploaded media files. The app stores URLs, provider IDs, and metadata in `media_assets`.
+- Redis backs caching and BullMQ queues.
+- Supabase database caching can be enabled with `API_SUPABASE_DB_CACHE_ENABLED`.
 - Namecheap SMTP sends transactional email.
 - BullMQ handles application events and background jobs.
 
 ## Required Provider Variables
 
-- Supabase: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` or `SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`, plus `SUPABASE_JWT_SECRET` or `SUPABASE_JWKS_URL`.
-- Database: `DATABASE_URL`, optional `DIRECT_URL`.
-- Cloudinary: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `CLOUDINARY_FOLDER`.
-- Web Cloudinary uploads: `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`, `NEXT_PUBLIC_CLOUDINARY_FOLDER`.
-- Upstash: `UPSTASH_REDIS_URL`, `UPSTASH_REDIS_TOKEN`.
-- Email: `NAMECHEAP_SMTP_HOST`, `NAMECHEAP_SMTP_PORT`, `NAMECHEAP_SMTP_USER`, `NAMECHEAP_SMTP_PASSWORD`, `EMAIL_FROM`.
-- Events: `BULLMQ_REDIS_URL`, falling back to `UPSTASH_REDIS_URL` when omitted.
+- API Supabase Auth: `API_SUPABASE_URL`, `API_SUPABASE_PUBLISHABLE_KEY` or `API_SUPABASE_ANON_KEY`, `API_SUPABASE_SECRET_KEY` or `API_SUPABASE_SERVICE_ROLE_KEY`, plus `API_SUPABASE_JWT_SECRET` or `API_SUPABASE_JWKS_URL`.
+- API database: `API_DATABASE_URL` and optional `API_DIRECT_URL`, or `API_POSTGRES_USER`, `API_POSTGRES_PASSWORD`, and `API_POSTGRES_DB` for Docker Postgres.
+- API storage: `API_STORAGE_PROVIDER`, `API_S3_ENDPOINT`, `API_S3_PUBLIC_URL`, `API_S3_BUCKET`, `API_S3_REGION`, `API_S3_ACCESS_KEY`, `API_S3_SECRET_KEY`, and `API_S3_FORCE_PATH_STYLE`.
+- API email: `API_NAMECHEAP_SMTP_HOST`, `API_NAMECHEAP_SMTP_PORT`, `API_NAMECHEAP_SMTP_USER`, `API_NAMECHEAP_SMTP_PASSWORD`, and `API_EMAIL_FROM`.
+- API events: `API_BULLMQ_REDIS_URL`, falling back to `API_UPSTASH_REDIS_URL` when omitted.
+- Web: `NEXT_DOMAIN`, `NEXT_APP_URL`, `NEXT_ACME_EMAIL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_AUTH_URL`, and `NEXT_PUBLIC_AUTH_PUBLIC_KEY`.
+- Mobile: `EXPO_PORT` and `EXPO_PUBLIC_API_URL`.
+- Agent: `AGENT_PORT`, `AGENT_API_BASE_URL`, `AGENT_REDIS_URL`, and `AGENT_DATABASE_URL`.
 
 ## Commands
 

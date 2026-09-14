@@ -125,6 +125,7 @@ model Shop {
   orders   Order[]
 
   @@index([vendorStatus])
+  @@index([vendorStatus, updatedAt])
   @@map("shops")
 }
 
@@ -145,7 +146,7 @@ model MediaAsset {
   width        Int?
   height       Int?
   duration     Decimal?       @db.Decimal(10, 3)
-  provider     String         @default("cloudinary")
+  provider     String         @default("minio")
   folder       String?
   metadata     Json?
   createdAt    DateTime       @default(now()) @map("created_at")
@@ -178,7 +179,11 @@ model Product {
   orderItems OrderItem[]
 
   @@index([shopId])
+  @@index([shopId, createdAt])
   @@index([category])
+  @@index([isActive, createdAt])
+  @@index([isActive, category, createdAt])
+  @@index([isActive, price])
   @@map("products")
 }
 
@@ -196,6 +201,7 @@ model Rating {
 
   @@unique([productId, userId])
   @@index([productId])
+  @@index([productId, createdAt])
   @@map("ratings")
 }
 
@@ -218,7 +224,10 @@ model Order {
   items OrderItem[]
 
   @@index([buyerId])
+  @@index([buyerId, createdAt])
   @@index([shopId])
+  @@index([shopId, createdAt])
+  @@index([shopId, status, createdAt])
   @@index([status])
   @@map("orders")
 }

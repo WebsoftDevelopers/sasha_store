@@ -1,0 +1,14 @@
+{
+  "name": "sasha-store",
+  "private": true,
+  "scripts": {
+    "dev-start": "./scripts/dev-start.sh",
+    "dev-stop": "./scripts/dev-stop.sh",
+    "prod-start": "./scripts/prod-start.sh",
+    "prod-stop": "./scripts/prod-stop.sh",
+    "prod-logs": "docker compose --env-file config/.env -f config/docker-compose.prod.yml logs -f",
+    "prod-ps": "docker compose --env-file config/.env -f config/docker-compose.prod.yml ps",
+    "dev-logs": "docker compose --env-file config/.env -f config/docker-compose.yml logs -f",
+    "dev-ps": "docker compose --env-file config/.env -f config/docker-compose.yml ps"
+  }
+}

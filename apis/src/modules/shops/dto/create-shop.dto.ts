@@ -199,7 +199,7 @@ export class CreateShopDto {
   @IsUrl({}, { each: true })
   socialLinks?: string[];
 
-  @ApiPropertyOptional({ description: 'Uploaded CAC document Cloudinary URL' })
+  @ApiPropertyOptional({ description: 'Uploaded CAC document URL' })
   @IsOptional()
   @IsUrl()
   cacDocumentUrl?: string;

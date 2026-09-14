@@ -80,7 +80,7 @@ export function ProductUploadForm({ onCreated }: Props) {
       setFile(null);
       setPreview(null);
       setMessage(
-        "Product saved. Image was compressed on-device and uploaded to Cloudinary; only the URL is stored.",
+        "Product saved. Image was compressed on-device and uploaded to your storage; only the URL is stored.",
       );
       onCreated?.();
     } catch (err) {
@@ -100,7 +100,7 @@ export function ProductUploadForm({ onCreated }: Props) {
       </h2>
       <p className="m-0 mb-5 text-[13px] text-[var(--color-muted)]">
         Images are compressed on your device, then uploaded straight to
-        Cloudinary. The API only saves the URL.
+        your storage. The API only saves the URL.
       </p>
 
       <label className="auth-label" htmlFor="product-name">

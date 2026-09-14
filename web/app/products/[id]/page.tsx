@@ -140,10 +140,6 @@ export default function ProductDetailPage() {
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  unoptimized={
-                    product.imageUrl.includes("picsum.photos") ||
-                    product.imageUrl.includes("placehold.co")
-                  }
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-[var(--color-muted)]">

@@ -6,9 +6,10 @@
 - Supabase Auth owns email/password + Google OAuth
 
 ## Setup
-1. Fill Supabase, database, and Cloudinary values in `config/.env`.
+1. Fill `API_`, `NEXT_`, `EXPO_`, and `AGENT_` values in `config/.env`.
 2. `npm install`
-3. Apply migration (uses `DIRECT_URL` when set):
+3. Apply migration. Prisma receives `API_DATABASE_URL` and optional
+   `API_DIRECT_URL` through the Docker/API runtime:
    ```bash
    npx prisma migrate deploy
    npx prisma generate
@@ -19,7 +20,8 @@
 1. Auth → Providers: enable **Email** and **Google**
 2. Redirect URLs: `http://localhost:3000/auth/callback` (+ production)
 3. Site URL: frontend origin
-4. Copy Project URL, anon key, service role key, and JWT secret into `config/.env`
+4. Copy Project URL, publishable/anon key, service role key, and JWT secret into
+   the `API_SUPABASE_*` and `NEXT_PUBLIC_SUPABASE_*` entries in `config/.env`.
 
 ## Auth endpoints
 - `GET /api/auth/me` — current mirrored user (Bearer)
@@ -27,16 +29,11 @@
 - `GET /api/users/me` — same as auth/me
 - `PATCH /api/users/me` — update `fullName` / `avatarUrl`
 
-## Media uploads (Cloudinary)
-Flow: **Frontend uploads directly to Cloudinary** (unsigned preset) → frontend records the Cloudinary URL/public ID through Nest → Prisma stores metadata in `media_assets` and feature tables keep URL fields for fast reads.
+## Media uploads
 
-Cloudinary is the bucket for images, videos, documents, and blobs. PostgreSQL should store metadata and references, not file bytes.
+Flow: frontend uploads through the API storage endpoint → API stores the file in
+the configured S3-compatible provider → Prisma stores metadata in
+`media_assets` and feature tables keep URL fields for fast reads.
 
-Frontend env:
-```
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
-NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=   # must be UNSIGNED
-NEXT_PUBLIC_CLOUDINARY_FOLDER=sasha-store
-```
-
-Create the unsigned upload preset in Cloudinary Dashboard → Settings → Upload.
+Object storage is the bucket for images, videos, documents, and blobs.
+PostgreSQL should store metadata and references, not file bytes.

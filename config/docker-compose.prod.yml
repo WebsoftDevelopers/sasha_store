@@ -1,0 +1,322 @@
+name: sasha-store-prod
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${NEXT_DOMAIN}
+      MINIO_DOMAIN: ${API_MINIO_DOMAIN}
+      ACME_EMAIL: ${NEXT_ACME_EMAIL}
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+      agent-ai:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - public_edge
+      - app_private
+
+  web:
+    build:
+      context: ..
+      dockerfile: config/Dockerfile.prod
+      target: web
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://${NEXT_DOMAIN}}
+        NEXT_PUBLIC_AUTH_PROVIDER: ${NEXT_PUBLIC_AUTH_PROVIDER:-supabase}
+        NEXT_PUBLIC_AUTH_URL: ${NEXT_PUBLIC_AUTH_URL:-${NEXT_PUBLIC_SUPABASE_URL:-${API_SUPABASE_URL}}}
+        NEXT_PUBLIC_AUTH_PUBLIC_KEY: ${NEXT_PUBLIC_AUTH_PUBLIC_KEY:-${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${API_SUPABASE_PUBLISHABLE_KEY:-${API_SUPABASE_ANON_KEY}}}}}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-${API_SUPABASE_URL}}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-${API_SUPABASE_PUBLISHABLE_KEY:-${API_SUPABASE_ANON_KEY}}}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${API_SUPABASE_ANON_KEY:-${API_SUPABASE_PUBLISHABLE_KEY}}}
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://${NEXT_DOMAIN}}
+      NEXT_PUBLIC_AUTH_PROVIDER: ${NEXT_PUBLIC_AUTH_PROVIDER:-supabase}
+      NEXT_PUBLIC_AUTH_URL: ${NEXT_PUBLIC_AUTH_URL:-${NEXT_PUBLIC_SUPABASE_URL:-${API_SUPABASE_URL}}}
+      NEXT_PUBLIC_AUTH_PUBLIC_KEY: ${NEXT_PUBLIC_AUTH_PUBLIC_KEY:-${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${API_SUPABASE_PUBLISHABLE_KEY:-${API_SUPABASE_ANON_KEY}}}}}
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-${API_SUPABASE_URL}}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-${API_SUPABASE_PUBLISHABLE_KEY:-${API_SUPABASE_ANON_KEY}}}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${API_SUPABASE_ANON_KEY:-${API_SUPABASE_PUBLISHABLE_KEY}}}
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - app_private
+
+  api:
+    build:
+      context: ..
+      dockerfile: config/Dockerfile.prod
+      target: api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      agent-ai:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      APP_NAME: Sasha Store API
+      PORT: 8000
+      NODE_ENV: production
+      API_PREFIX: api
+      AUTH_PROVIDER: ${API_AUTH_PROVIDER:-supabase}
+      AUTH_URL: ${API_AUTH_URL:-${API_SUPABASE_URL}}
+      AUTH_PUBLIC_KEY: ${API_AUTH_PUBLIC_KEY:-${API_SUPABASE_PUBLISHABLE_KEY:-${API_SUPABASE_ANON_KEY}}}
+      AUTH_SERVICE_KEY: ${API_AUTH_SERVICE_KEY:-${API_SUPABASE_SERVICE_ROLE_KEY:-${API_SUPABASE_SECRET_KEY:-}}}
+      AUTH_JWT_SECRET: ${API_AUTH_JWT_SECRET:-${API_SUPABASE_JWT_SECRET:-}}
+      AUTH_JWKS_URL: ${API_AUTH_JWKS_URL:-${API_SUPABASE_JWKS_URL:-}}
+      AUTH_JWT_ISSUER: ${API_AUTH_JWT_ISSUER:-}
+      AUTH_JWT_AUDIENCE: ${API_AUTH_JWT_AUDIENCE:-authenticated}
+      AUTH_REQUIRED_ROLE: ${API_AUTH_REQUIRED_ROLE:-authenticated}
+      AUTH_ROLE_CLAIM: ${API_AUTH_ROLE_CLAIM:-role}
+      FRONTEND_URL: ${API_FRONTEND_URL:-${NEXT_APP_URL:-https://${NEXT_DOMAIN}}}
+      CORS_ALLOWED_ORIGINS: ${API_CORS_ALLOWED_ORIGINS:-${NEXT_APP_URL:-https://${NEXT_DOMAIN}}}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+      TRUST_PROXY: "true"
+      RATE_LIMIT_WINDOW_MS: ${API_RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX: ${API_RATE_LIMIT_MAX:-180}
+      DATABASE_URL: ${API_DATABASE_URL:-postgresql://${API_POSTGRES_USER}:${API_POSTGRES_PASSWORD}@postgres:5432/${API_POSTGRES_DB}}
+      DIRECT_URL: ${API_DIRECT_URL:-postgresql://${API_POSTGRES_USER}:${API_POSTGRES_PASSWORD}@postgres:5432/${API_POSTGRES_DB}}
+      SUPABASE_URL: ${API_SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${API_SUPABASE_ANON_KEY:-${API_SUPABASE_PUBLISHABLE_KEY}}
+      SUPABASE_PUBLISHABLE_KEY: ${API_SUPABASE_PUBLISHABLE_KEY:-${API_SUPABASE_ANON_KEY}}
+      SUPABASE_SERVICE_ROLE_KEY: ${API_SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${API_SUPABASE_SECRET_KEY:-}
+      SUPABASE_JWT_SECRET: ${API_SUPABASE_JWT_SECRET:-${API_AUTH_JWT_SECRET:-}}
+      SUPABASE_JWKS_URL: ${API_SUPABASE_JWKS_URL:-${API_AUTH_JWKS_URL:-}}
+      UPSTASH_REDIS_URL: ${API_UPSTASH_REDIS_URL:-redis://redis:6379}
+      BULLMQ_REDIS_URL: ${API_BULLMQ_REDIS_URL:-redis://redis:6379}
+      AGENT_AI_URL: ${AGENT_API_BASE_URL:-http://agent-ai:8001}
+      NAMECHEAP_SMTP_HOST: ${API_NAMECHEAP_SMTP_HOST:-mail.privateemail.com}
+      NAMECHEAP_SMTP_PORT: ${API_NAMECHEAP_SMTP_PORT:-587}
+      NAMECHEAP_SMTP_USER: ${API_NAMECHEAP_SMTP_USER:-support@sashafragrance.com}
+      NAMECHEAP_SMTP_PASSWORD: ${API_NAMECHEAP_SMTP_PASSWORD:-}
+      EMAIL_FROM: ${API_EMAIL_FROM:-support@sashafragrance.com}
+      STORAGE_PROVIDER: ${API_STORAGE_PROVIDER:-s3}
+      S3_ENDPOINT: ${API_S3_ENDPOINT:-http://minio:9000}
+      S3_PUBLIC_URL: ${API_S3_PUBLIC_URL:-/storage}
+      S3_BUCKET: ${API_S3_BUCKET:-sasha-store}
+      S3_REGION: ${API_S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${API_S3_ACCESS_KEY:-${API_MINIO_ROOT_USER}}
+      S3_SECRET_KEY: ${API_S3_SECRET_KEY:-${API_MINIO_ROOT_PASSWORD}}
+      S3_FORCE_PATH_STYLE: ${API_S3_FORCE_PATH_STYLE:-true}
+      RUN_SEED: ${API_RUN_SEED:-false}
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - app_private
+
+  agent-ai:
+    build:
+      context: ..
+      dockerfile: config/Dockerfile.prod
+      target: agent
+    restart: unless-stopped
+    environment:
+      PORT: ${AGENT_PORT:-8001}
+      API_BASE_URL: ${AGENT_API_BASE_URL:-http://api:8000}
+      REDIS_URL: ${AGENT_REDIS_URL:-redis://redis:6379}
+      DATABASE_URL: ${AGENT_DATABASE_URL:-postgresql://${API_POSTGRES_USER}:${API_POSTGRES_PASSWORD}@postgres:5432/${API_POSTGRES_DB}}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8001"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app_private
+
+  auth:
+    image: supabase/gotrue:v2.177.0
+    profiles:
+      - selfhost-auth
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_AUTH_EXTERNAL_URL:-https://${NEXT_DOMAIN}/auth/v1}
+      GOTRUE_SITE_URL: ${NEXT_APP_URL:-https://${NEXT_DOMAIN}}
+      GOTRUE_URI_ALLOW_LIST: ${API_AUTH_REDIRECT_ALLOW_LIST:-https://${NEXT_DOMAIN},https://${NEXT_DOMAIN}/auth/callback}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://${API_POSTGRES_USER}:${API_POSTGRES_PASSWORD}@postgres:5432/${API_POSTGRES_DB}?search_path=auth
+      GOTRUE_JWT_SECRET: ${API_AUTH_JWT_SECRET:-${API_SUPABASE_JWT_SECRET:-}}
+      GOTRUE_JWT_EXP: ${API_AUTH_JWT_EXP:-3600}
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_DISABLE_SIGNUP: ${API_AUTH_DISABLE_SIGNUP:-false}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: ${API_AUTH_MAILER_AUTOCONFIRM:-false}
+      GOTRUE_SMTP_HOST: ${API_NAMECHEAP_SMTP_HOST:-mail.privateemail.com}
+      GOTRUE_SMTP_PORT: ${API_NAMECHEAP_SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${API_NAMECHEAP_SMTP_USER:-support@sashafragrance.com}
+      GOTRUE_SMTP_PASS: ${API_NAMECHEAP_SMTP_PASSWORD:-}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${API_EMAIL_FROM:-support@sashafragrance.com}
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/callback
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/reset-password
+    expose:
+      - "9999"
+    networks:
+      - app_private
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${API_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${API_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${API_POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+      - postgres_backups:/backups:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${API_POSTGRES_USER} -d ${API_POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - app_private
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app_private
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${API_MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${API_MINIO_ROOT_PASSWORD}
+      MINIO_BROWSER_REDIRECT_URL: ${API_MINIO_CONSOLE_URL:-https://${API_MINIO_DOMAIN}/console}
+      MINIO_SERVER_URL: ${API_MINIO_SERVER_URL:-https://${API_MINIO_DOMAIN}}
+    volumes:
+      - minio_data:/data
+    expose:
+      - "9000"
+      - "9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app_private
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${API_MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${API_MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${API_S3_BUCKET:-sasha-store}
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 \"$${MINIO_ROOT_USER}\" \"$${MINIO_ROOT_PASSWORD}\" &&
+      mc mb --ignore-existing local/$${S3_BUCKET:-sasha-store} &&
+      mc anonymous set download local/$${S3_BUCKET:-sasha-store}/public
+      "
+    networks:
+      - app_private
+
+  postgres-backup:
+    build:
+      context: ..
+      dockerfile: config/Dockerfile.backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${API_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${API_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${API_POSTGRES_DB}
+      BACKUP_DIR: /backups
+      BACKUP_TIME: ${API_BACKUP_TIME:-02:00}
+      BACKUP_RETENTION_DAYS: ${API_BACKUP_RETENTION_DAYS:-14}
+      BACKUP_EMAIL_ENABLED: ${API_BACKUP_EMAIL_ENABLED:-true}
+      BACKUP_EMAIL_TO: ${API_BACKUP_EMAIL_TO}
+      BACKUP_RUN_ON_START: ${API_BACKUP_RUN_ON_START:-false}
+      BACKUP_RUN_ONCE: ${API_BACKUP_RUN_ONCE:-false}
+      SMTP_HOST: ${API_NAMECHEAP_SMTP_HOST:-mail.privateemail.com}
+      SMTP_PORT: ${API_NAMECHEAP_SMTP_PORT:-587}
+      SMTP_USER: ${API_NAMECHEAP_SMTP_USER:-support@sashafragrance.com}
+      SMTP_PASSWORD: ${API_NAMECHEAP_SMTP_PASSWORD:-}
+      SMTP_FROM: ${API_EMAIL_FROM:-support@sashafragrance.com}
+      SMTP_SECURE: ${API_NAMECHEAP_SMTP_SECURE:-starttls}
+      APP_DOMAIN: ${NEXT_DOMAIN}
+    volumes:
+      - postgres_backups:/backups
+    networks:
+      - app_private
+
+networks:
+  public_edge:
+    driver: bridge
+  app_private:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:
+  redis_data:
+  minio_data:
+  postgres_backups:

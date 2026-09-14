@@ -56,7 +56,7 @@ export default function PublicShopPage() {
                 <article key={product.id} className="product-card">
                   <Link href={`/products/${product.id}`} className="flex flex-1 flex-col text-inherit no-underline">
                     <div className="product-card__media">
-                      {product.imageUrl ? <Image src={product.imageUrl} alt={product.name} fill className="object-cover" sizes="25vw" unoptimized={product.imageUrl.includes("placehold.co")} /> : null}
+                      {product.imageUrl ? <Image src={product.imageUrl} alt={product.name} fill className="object-cover" sizes="25vw" /> : null}
                     </div>
                     <div className="product-card__body">
                       <p className="m-0 text-[10px] uppercase text-[var(--color-muted)]">{product.category || "Product"}</p>

@@ -4,23 +4,53 @@ x-service-env-file: &service-env-file
   - ./.env
 
 x-api-env: &api-env
-  APP_NAME: Sasha Store API
+  APP_NAME: ${API_APP_NAME:-Sasha Store API}
   PORT: ${API_PORT:-8000}
   NODE_ENV: ${NODE_ENV:-development}
   API_PREFIX: ${API_PREFIX:-api}
-  FRONTEND_URL: ${API_FRONTEND_URL:-${FRONTEND_URL:-http://localhost:3000}}
-  DATABASE_URL: postgresql://${API_POSTGRES_USER:-${POSTGRES_USER:-sasha}}:${API_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD:-sasha}}@postgres:5432/${API_POSTGRES_DB:-${POSTGRES_DB:-sasha_store}}
-  DIRECT_URL: postgresql://${API_POSTGRES_USER:-${POSTGRES_USER:-sasha}}:${API_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD:-sasha}}@postgres:5432/${API_POSTGRES_DB:-${POSTGRES_DB:-sasha_store}}
-  SUPABASE_URL: ${API_SUPABASE_URL:-${SUPABASE_URL:-}}
-  SUPABASE_ANON_KEY: ${API_SUPABASE_ANON_KEY:-${SUPABASE_ANON_KEY:-}}
-  SUPABASE_PUBLISHABLE_KEY: ${API_SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_PUBLISHABLE_KEY:-}}
-  SUPABASE_SERVICE_ROLE_KEY: ${API_SUPABASE_SERVICE_ROLE_KEY:-${SUPABASE_SERVICE_ROLE_KEY:-}}
-  SUPABASE_SECRET_KEY: ${API_SUPABASE_SECRET_KEY:-${SUPABASE_SECRET_KEY:-}}
-  SUPABASE_JWT_SECRET: ${API_SUPABASE_JWT_SECRET:-${SUPABASE_JWT_SECRET:-}}
-  SUPABASE_JWKS_URL: ${API_SUPABASE_JWKS_URL:-${SUPABASE_JWKS_URL:-}}
-  CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-${CLOUDINARY_CLOUD_NAME:-}}
-  CLOUDINARY_FOLDER: ${NEXT_PUBLIC_CLOUDINARY_FOLDER:-${CLOUDINARY_FOLDER:-sasha-store/products}}
-  RUN_SEED: ${RUN_SEED:-false}
+  FRONTEND_URL: ${API_FRONTEND_URL:-http://localhost:3000}
+  CORS_ALLOWED_ORIGINS: ${API_CORS_ALLOWED_ORIGINS:-}
+  API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+  TRUST_PROXY: ${API_TRUST_PROXY:-false}
+  RATE_LIMIT_WINDOW_MS: ${API_RATE_LIMIT_WINDOW_MS:-60000}
+  RATE_LIMIT_MAX: ${API_RATE_LIMIT_MAX:-180}
+  DATABASE_URL: ${API_DATABASE_URL:-postgresql://${API_POSTGRES_USER:-sasha}:${API_POSTGRES_PASSWORD:-sasha}@postgres:5432/${API_POSTGRES_DB:-sasha_store}}
+  DIRECT_URL: ${API_DIRECT_URL:-postgresql://${API_POSTGRES_USER:-sasha}:${API_POSTGRES_PASSWORD:-sasha}@postgres:5432/${API_POSTGRES_DB:-sasha_store}}
+  AUTH_PROVIDER: ${API_AUTH_PROVIDER:-supabase}
+  AUTH_URL: ${API_AUTH_URL:-${API_SUPABASE_URL:-}}
+  AUTH_PUBLIC_KEY: ${API_AUTH_PUBLIC_KEY:-${API_SUPABASE_ANON_KEY:-${API_SUPABASE_PUBLISHABLE_KEY:-}}}
+  AUTH_SERVICE_KEY: ${API_AUTH_SERVICE_KEY:-${API_SUPABASE_SERVICE_ROLE_KEY:-${API_SUPABASE_SECRET_KEY:-}}}
+  AUTH_JWT_SECRET: ${API_AUTH_JWT_SECRET:-${API_SUPABASE_JWT_SECRET:-}}
+  AUTH_JWKS_URL: ${API_AUTH_JWKS_URL:-${API_SUPABASE_JWKS_URL:-}}
+  AUTH_JWT_ISSUER: ${API_AUTH_JWT_ISSUER:-}
+  AUTH_JWT_AUDIENCE: ${API_AUTH_JWT_AUDIENCE:-authenticated}
+  AUTH_REQUIRED_ROLE: ${API_AUTH_REQUIRED_ROLE:-authenticated}
+  AUTH_ROLE_CLAIM: ${API_AUTH_ROLE_CLAIM:-role}
+  SUPABASE_URL: ${API_SUPABASE_URL:-}
+  SUPABASE_ANON_KEY: ${API_SUPABASE_ANON_KEY:-}
+  SUPABASE_PUBLISHABLE_KEY: ${API_SUPABASE_PUBLISHABLE_KEY:-}
+  SUPABASE_SERVICE_ROLE_KEY: ${API_SUPABASE_SERVICE_ROLE_KEY:-}
+  SUPABASE_SECRET_KEY: ${API_SUPABASE_SECRET_KEY:-}
+  SUPABASE_JWT_SECRET: ${API_SUPABASE_JWT_SECRET:-}
+  SUPABASE_JWKS_URL: ${API_SUPABASE_JWKS_URL:-}
+  REDIS_URL: ${API_REDIS_URL:-redis://redis:6379}
+  UPSTASH_REDIS_URL: ${API_UPSTASH_REDIS_URL:-}
+  UPSTASH_REDIS_TOKEN: ${API_UPSTASH_REDIS_TOKEN:-}
+  BULLMQ_REDIS_URL: ${API_BULLMQ_REDIS_URL:-redis://redis:6379}
+  STORAGE_PROVIDER: ${API_STORAGE_PROVIDER:-s3}
+  S3_ENDPOINT: ${API_S3_ENDPOINT:-http://minio:9000}
+  S3_PUBLIC_URL: ${API_S3_PUBLIC_URL:-http://localhost:9000}
+  S3_BUCKET: ${API_S3_BUCKET:-sasha-store}
+  S3_REGION: ${API_S3_REGION:-us-east-1}
+  S3_ACCESS_KEY: ${API_S3_ACCESS_KEY:-${API_MINIO_ROOT_USER:-minioadmin}}
+  S3_SECRET_KEY: ${API_S3_SECRET_KEY:-${API_MINIO_ROOT_PASSWORD:-minioadmin}}
+  S3_FORCE_PATH_STYLE: ${API_S3_FORCE_PATH_STYLE:-true}
+  NAMECHEAP_SMTP_HOST: ${API_NAMECHEAP_SMTP_HOST:-mail.privateemail.com}
+  NAMECHEAP_SMTP_PORT: ${API_NAMECHEAP_SMTP_PORT:-587}
+  NAMECHEAP_SMTP_USER: ${API_NAMECHEAP_SMTP_USER:-support@sashafragrance.com}
+  NAMECHEAP_SMTP_PASSWORD: ${API_NAMECHEAP_SMTP_PASSWORD:-}
+  EMAIL_FROM: ${API_EMAIL_FROM:-support@sashafragrance.com}
+  RUN_SEED: ${API_RUN_SEED:-false}
 
 x-web-env: &web-env
   PORT: 3000
@@ -28,21 +58,21 @@ x-web-env: &web-env
   NODE_ENV: ${NODE_ENV:-development}
   NEXT_TELEMETRY_DISABLED: "1"
   NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+  NEXT_PUBLIC_AUTH_PROVIDER: ${NEXT_PUBLIC_AUTH_PROVIDER:-supabase}
+  NEXT_PUBLIC_AUTH_URL: ${NEXT_PUBLIC_AUTH_URL:-${NEXT_PUBLIC_SUPABASE_URL}}
+  NEXT_PUBLIC_AUTH_PUBLIC_KEY: ${NEXT_PUBLIC_AUTH_PUBLIC_KEY:-${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}}}
   NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}
   NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
-  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-}
-  NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET:-}
-  NEXT_PUBLIC_CLOUDINARY_FOLDER: ${NEXT_PUBLIC_CLOUDINARY_FOLDER:-sasha-store/products}
 
 x-web-build-args: &web-build-args
   NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+  NEXT_PUBLIC_AUTH_PROVIDER: ${NEXT_PUBLIC_AUTH_PROVIDER:-${AUTH_PROVIDER:-supabase}}
+  NEXT_PUBLIC_AUTH_URL: ${NEXT_PUBLIC_AUTH_URL:-${NEXT_PUBLIC_SUPABASE_URL}}
+  NEXT_PUBLIC_AUTH_PUBLIC_KEY: ${NEXT_PUBLIC_AUTH_PUBLIC_KEY:-${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}}}
   NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}
   NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
-  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-}
-  NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET:-}
-  NEXT_PUBLIC_CLOUDINARY_FOLDER: ${NEXT_PUBLIC_CLOUDINARY_FOLDER:-sasha-store/products}
 
 services:
   postgres:
@@ -50,15 +80,15 @@ services:
     restart: unless-stopped
     env_file: *service-env-file
     environment:
-      POSTGRES_USER: ${API_POSTGRES_USER:-${POSTGRES_USER:-sasha}}
-      POSTGRES_PASSWORD: ${API_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD:-sasha}}
-      POSTGRES_DB: ${API_POSTGRES_DB:-${POSTGRES_DB:-sasha_store}}
+      POSTGRES_USER: ${API_POSTGRES_USER:-sasha}
+      POSTGRES_PASSWORD: ${API_POSTGRES_PASSWORD:-sasha}
+      POSTGRES_DB: ${API_POSTGRES_DB:-sasha_store}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${API_POSTGRES_USER:-${POSTGRES_USER:-sasha}} -d ${API_POSTGRES_DB:-${POSTGRES_DB:-sasha_store}}"]
+      test: ["CMD-SHELL", "pg_isready -U ${API_POSTGRES_USER:-sasha} -d ${API_POSTGRES_DB:-sasha_store}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -67,7 +97,6 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    profiles: [tools]
     env_file: *service-env-file
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -78,6 +107,39 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    restart: unless-stopped
+    env_file: *service-env-file
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${API_MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${API_MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    env_file: *service-env-file
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 \"$${API_MINIO_ROOT_USER:-minioadmin}\" \"$${API_MINIO_ROOT_PASSWORD:-minioadmin}\" &&
+      mc mb --ignore-existing local/$${API_S3_BUCKET:-sasha-store} &&
+      mc anonymous set download local/$${API_S3_BUCKET:-sasha-store}/public
+      "
 
   adminer:
     image: adminer:4
@@ -110,6 +172,10 @@ services:
     env_file: *service-env-file
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     environment:
       <<: *api-env
@@ -166,10 +232,10 @@ services:
     restart: unless-stopped
     env_file: *service-env-file
     environment:
-      PORT: 3001
+      PORT: ${EXPO_PORT:-3001}
       NODE_ENV: ${NODE_ENV:-development}
     ports:
-      - "${MOBILE_PORT:-3001}:3001"
+      - "${EXPO_PORT:-3001}:3001"
     volumes:
       - ../mobile:/app
       - mobile_node_modules:/app/node_modules
@@ -188,9 +254,12 @@ services:
     restart: unless-stopped
     env_file: *service-env-file
     environment:
-      PORT: 8001
+      PORT: ${AGENT_PORT:-8001}
+      API_BASE_URL: ${AGENT_API_BASE_URL:-http://api:8000}
+      REDIS_URL: ${AGENT_REDIS_URL:-redis://redis:6379}
+      DATABASE_URL: ${AGENT_DATABASE_URL:-postgresql://${API_POSTGRES_USER:-sasha}:${API_POSTGRES_PASSWORD:-sasha}@postgres:5432/${API_POSTGRES_DB:-sasha_store}}
     ports:
-      - "${AGENTIC_AI_PORT:-8001}:8001"
+      - "${AGENT_PORT:-8001}:8001"
     volumes:
       - ../agent:/app
     healthcheck:
@@ -203,6 +272,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  minio_data:
   api_node_modules:
   web_node_modules:
   mobile_node_modules:

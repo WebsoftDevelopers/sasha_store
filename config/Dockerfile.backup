@@ -1,0 +1,8 @@
+FROM postgres:16-alpine
+
+RUN apk add --no-cache bash ca-certificates coreutils curl tzdata
+
+COPY config/scripts/postgres-backup.sh /usr/local/bin/postgres-backup.sh
+RUN chmod +x /usr/local/bin/postgres-backup.sh
+
+ENTRYPOINT ["postgres-backup.sh"]

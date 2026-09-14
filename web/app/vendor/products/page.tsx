@@ -75,7 +75,7 @@ export default function VendorProductsPage() {
             {products.map((product) => (
               <li key={product.id} className="flex items-center gap-3 border border-[var(--color-border)] p-3">
                 <span className="relative h-16 w-16 shrink-0 bg-[var(--color-surface-elevated)]">
-                  {product.imageUrl ? <Image src={product.imageUrl} alt="" fill className="object-cover" unoptimized={product.imageUrl.includes("placehold.co")} /> : null}
+                  {product.imageUrl ? <Image src={product.imageUrl} alt="" fill className="object-cover" /> : null}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14px] font-semibold">{product.name}</span>

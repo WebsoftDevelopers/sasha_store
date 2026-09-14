@@ -48,9 +48,10 @@ export class StorageController {
   async upload(
     @CurrentUser() user: SupabaseJwtPayload,
     @UploadedFile() file: Express.Multer.File,
+    @Query('context') context?: string,
   ) {
     const dbUser = await this.usersService.ensureFromJwt(user);
-    return this.storageService.uploadImage(dbUser.id, file);
+    return this.storageService.uploadFile(dbUser.id, file, context);
   }
 
   @Post('assets')

@@ -155,19 +155,22 @@ export class ProductsService {
         },
         ratings: {
           orderBy: { createdAt: 'desc' },
+          take: 20,
           include: {
             user: { select: { id: true, fullName: true } },
           },
         },
+        _count: { select: { ratings: true } },
       },
     });
     if (!product) throw new NotFoundException('Product not found');
-    const avg =
-      product.ratings.length === 0
-        ? null
-        : product.ratings.reduce((s, r) => s + r.score, 0) /
-          product.ratings.length;
-    return { ...product, averageRating: avg };
+
+    const ratingStats = await this.prisma.rating.aggregate({
+      where: { productId: product.id },
+      _avg: { score: true },
+    });
+
+    return { ...product, averageRating: ratingStats._avg.score };
   }
 
   async update(id: string, ownerId: string, dto: UpdateProductDto) {

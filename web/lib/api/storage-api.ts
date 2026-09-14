@@ -2,6 +2,7 @@
 
 import imageCompression from "browser-image-compression";
 import { apiClient } from "./api-client";
+import { getApiBaseUrl } from "@/lib/supabase/env";
 
 export type UploadResult = {
   url: string;
@@ -40,34 +41,6 @@ export type UploadProgress = {
   message: string;
 };
 
-function getCloudinaryConfig() {
-  const cloudName =
-    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() || "";
-  const uploadPreset =
-    process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim() || "";
-  const rootFolder =
-    process.env.NEXT_PUBLIC_CLOUDINARY_FOLDER?.trim() || "";
-
-  if (!cloudName || !uploadPreset || cloudName === "your-cloud-name") {
-    throw new Error(
-      "Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET (unsigned) in .env",
-    );
-  }
-
-  return { cloudName, uploadPreset, rootFolder };
-}
-
-/** Safe Cloudinary public_id segment from original filename (no extension). */
-function sanitizeBaseName(fileName: string): string {
-  const withoutExt = fileName.replace(/\.[^.]+$/, "");
-  const cleaned = withoutExt
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-  return cleaned || "image";
-}
-
 async function compressImage(file: File): Promise<File> {
   return imageCompression(file, {
     maxSizeMB: 1,
@@ -77,45 +50,48 @@ async function compressImage(file: File): Promise<File> {
   });
 }
 
-async function uploadToCloudinary(
+async function uploadImageThroughApi(
   file: File,
-  folder: string,
-  publicId: string,
-  resourceType: "image" | "raw",
-): Promise<{ secure_url: string; public_id: string }> {
-  const { cloudName, uploadPreset } = getCloudinaryConfig();
+  token: string,
+  context: string,
+): Promise<{ url: string; publicId: string; assetId: string }> {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("upload_preset", uploadPreset);
-  formData.append("folder", folder);
-  formData.append("public_id", publicId);
 
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
+    `${getApiBaseUrl()}/api/storage/upload?context=${encodeURIComponent(context)}`,
     {
       method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: formData,
     },
   );
 
   if (!response.ok) {
-    let message = `Cloudinary upload failed (${response.status})`;
+    let message = `Image upload failed (${response.status})`;
     try {
-      const body = (await response.json()) as { error?: { message?: string } };
-      if (body.error?.message) message = body.error.message;
+      const body = (await response.json()) as { message?: string | string[] };
+      message = Array.isArray(body.message)
+        ? body.message.join(", ")
+        : body.message || message;
     } catch {
       // ignore
     }
     throw new Error(message);
   }
 
-  return response.json() as Promise<{ secure_url: string; public_id: string }>;
+  return response.json() as Promise<{
+    url: string;
+    publicId: string;
+    assetId: string;
+  }>;
 }
 
 /**
- * Compress on-device, then upload to Cloudinary under:
- *   [{rootFolder}/]{userId}/{filename}
- * e.g. sasha-store/products/abc-uuid/photo-1710000000000
+ * Compress on-device, then upload through the authenticated API. The API stores
+ * the object in self-hosted MinIO and records media metadata for the user.
  */
 export async function uploadProductImage(
   file: File,
@@ -124,12 +100,11 @@ export async function uploadProductImage(
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<UploadResult> {
   if (!userId?.trim()) {
-    throw new Error("userId is required for per-user Cloudinary folders");
+    throw new Error("userId is required for per-user storage folders");
   }
-
-  const { rootFolder } = getCloudinaryConfig();
-  const folder = [rootFolder, userId.trim()].filter(Boolean).join("/");
-  const publicId = `${sanitizeBaseName(file.name)}-${Date.now()}`;
+  if (!token) {
+    throw new Error("Sign in required to upload product images");
+  }
 
   onProgress?.({
     stage: "compressing",
@@ -142,23 +117,10 @@ export async function uploadProductImage(
 
   onProgress?.({
     stage: "uploading",
-    message: `Reduced ${originalSizeMb}MB → ${compressedSizeMb}MB. Uploading to ${folder}/...`,
+    message: `Reduced ${originalSizeMb}MB → ${compressedSizeMb}MB. Uploading securely...`,
   });
 
-  const data = await uploadToCloudinary(compressedFile, folder, publicId, "image");
-  const asset = token
-    ? await recordMediaAsset(token, {
-        assetType: "IMAGE",
-        context: "product",
-        url: data.secure_url,
-        secureUrl: data.secure_url,
-        publicId: data.public_id,
-        resourceType: "image",
-        mimeType: compressedFile.type,
-        bytes: compressedFile.size,
-        folder,
-      })
-    : null;
+  const data = await uploadImageThroughApi(compressedFile, token, "product");
 
   onProgress?.({
     stage: "done",
@@ -166,9 +128,9 @@ export async function uploadProductImage(
   });
 
   return {
-    url: data.secure_url,
-    publicId: data.public_id,
-    assetId: asset?.id,
+    url: data.url,
+    publicId: data.publicId,
+    assetId: data.assetId,
     originalSizeMb,
     compressedSizeMb,
   };
@@ -182,7 +144,7 @@ export async function uploadVendorAsset(
   onProgress?: (progress: UploadProgress) => void,
 ): Promise<UploadResult> {
   if (!userId?.trim()) {
-    throw new Error("userId is required for per-user Cloudinary folders");
+    throw new Error("userId is required for per-user storage folders");
   }
 
   const allowed = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
@@ -190,17 +152,10 @@ export async function uploadVendorAsset(
     throw new Error("Vendor documents must be PDF, PNG, JPG, or JPEG.");
   }
 
-  const { rootFolder } = getCloudinaryConfig();
-  const folder = [rootFolder, userId.trim(), "vendor", kind]
-    .filter(Boolean)
-    .join("/");
-  const publicId = `${sanitizeBaseName(file.name)}-${Date.now()}`;
   const originalSizeMb = (file.size / 1024 / 1024).toFixed(2);
   let uploadFile = file;
-  let resourceType: "image" | "raw" = "raw";
 
   if (file.type.startsWith("image/")) {
-    resourceType = "image";
     onProgress?.({
       stage: "compressing",
       message: "Compressing image on your device...",
@@ -211,35 +166,20 @@ export async function uploadVendorAsset(
   const compressedSizeMb = (uploadFile.size / 1024 / 1024).toFixed(2);
   onProgress?.({
     stage: "uploading",
-    message: `Uploading ${file.type === "application/pdf" ? "PDF" : "image"} to ${folder}/...`,
+    message: `Uploading ${file.type === "application/pdf" ? "PDF" : "image"} securely...`,
   });
 
-  const data = await uploadToCloudinary(
-    uploadFile,
-    folder,
-    publicId,
-    resourceType,
-  );
-  const asset = token
-    ? await recordMediaAsset(token, {
-        assetType: resourceType === "image" ? "IMAGE" : "DOCUMENT",
-        context: `vendor:${kind}`,
-        url: data.secure_url,
-        secureUrl: data.secure_url,
-        publicId: data.public_id,
-        resourceType,
-        mimeType: file.type,
-        bytes: uploadFile.size,
-        folder,
-      })
-    : null;
+  if (!token) {
+    throw new Error("Sign in required to upload vendor files");
+  }
+  const data = await uploadImageThroughApi(uploadFile, token, `vendor:${kind}`);
 
   onProgress?.({ stage: "done", message: "Upload complete" });
 
   return {
-    url: data.secure_url,
-    publicId: data.public_id,
-    assetId: asset?.id,
+    url: data.url,
+    publicId: data.publicId,
+    assetId: data.assetId,
     originalSizeMb,
     compressedSizeMb,
   };

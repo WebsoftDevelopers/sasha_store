@@ -185,10 +185,6 @@ export function HeaderSearch() {
                           fill
                           className="object-cover"
                           sizes="44px"
-                          unoptimized={
-                            product.imageUrl.includes("picsum.photos") ||
-                            product.imageUrl.includes("placehold.co")
-                          }
                         />
                       ) : null}
                     </span>

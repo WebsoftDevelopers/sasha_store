@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 import type { Request } from 'express';
 
 export type SupabaseJwtPayload = {
@@ -26,6 +26,8 @@ export type SupabaseJwtPayload = {
 
 @Injectable()
 export class SupabaseJwtGuard implements CanActivate {
+  private jwks?: ReturnType<typeof createRemoteJWKSet>;
+
   constructor(private readonly configService: ConfigService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -41,47 +43,46 @@ export class SupabaseJwtGuard implements CanActivate {
       throw new UnauthorizedException('Missing bearer token');
     }
 
-    const secret = this.configService.get<string>('supabase.jwtSecret') || '';
-    const jwksUrl = this.configService.get<string>('supabase.jwksUrl') || '';
-    const supabaseUrl = this.configService.getOrThrow<string>('supabase.url');
-    const issuer = `${supabaseUrl.replace(/\/$/, '')}/auth/v1`;
+    const secret = this.configService.get<string>('auth.jwtSecret') || '';
+    const jwksUrl = this.configService.get<string>('auth.jwksUrl') || '';
+    const issuer = this.configService.getOrThrow<string>('auth.jwtIssuer');
+    const audience =
+      this.configService.get<string>('auth.jwtAudience') || 'authenticated';
+    const roleClaim = this.configService.get<string>('auth.roleClaim') || 'role';
+    const requiredRole =
+      this.configService.get<string>('auth.requiredRole') || 'authenticated';
 
     try {
-      let payload;
+      let payload: JWTPayload;
 
       if (secret) {
         const key = new TextEncoder().encode(secret);
-        try {
-          ({ payload } = await jwtVerify(token, key, {
-            algorithms: ['HS256'],
-            issuer,
-            audience: 'authenticated',
-          }));
-        } catch {
-          ({ payload } = await jwtVerify(token, key, {
-            algorithms: ['HS256'],
-            audience: 'authenticated',
-          }));
-        }
+        ({ payload } = await jwtVerify(token, key, {
+          algorithms: ['HS256'],
+          issuer,
+          audience,
+        }));
       } else if (jwksUrl) {
-        const JWKS = createRemoteJWKSet(new URL(jwksUrl));
-        try {
-          ({ payload } = await jwtVerify(token, JWKS, {
-            issuer,
-            audience: 'authenticated',
-          }));
-        } catch {
-          ({ payload } = await jwtVerify(token, JWKS, {
-            audience: 'authenticated',
-          }));
-        }
+        this.jwks ??= createRemoteJWKSet(new URL(jwksUrl));
+        ({ payload } = await jwtVerify(token, this.jwks, {
+          issuer,
+          audience,
+        }));
       } else {
         throw new UnauthorizedException(
-          'Server misconfigured: set SUPABASE_JWT_SECRET or SUPABASE_JWKS_URL',
+          'Server misconfigured: set AUTH_JWT_SECRET or AUTH_JWKS_URL',
         );
       }
 
-      (request as Request & { user: SupabaseJwtPayload }).user = payload;
+      if (typeof payload.sub !== 'string' || !payload.sub) {
+        throw new UnauthorizedException('Invalid token subject');
+      }
+      if (requiredRole && payload[roleClaim] !== requiredRole) {
+        throw new UnauthorizedException('Invalid token role');
+      }
+
+      (request as Request & { user: SupabaseJwtPayload }).user =
+        payload as SupabaseJwtPayload;
       return true;
     } catch (err) {
       if (err instanceof UnauthorizedException) throw err;

@@ -15,9 +15,7 @@ type Props = {
   disabled?: boolean;
 };
 
-/**
- * Client-only: compress on device, then upload to Cloudinary under userId/.
- */
+/** Client-only: compress on device, then upload through the API to object storage. */
 export function CloudinaryUpload({
   userId: userIdProp,
   onUploaded,
@@ -47,15 +45,12 @@ export function CloudinaryUpload({
     setBusy(true);
     try {
       let userId = userIdProp?.trim() || "";
-      let token = "";
-      if (!userId) {
-        const supabase = createClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        userId = session?.user?.id || "";
-        token = session?.access_token || "";
-      }
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      userId = userId || session?.user?.id || "";
+      const token = session?.access_token || "";
       if (!userId) {
         throw new Error("Sign in required — uploads go under your user folder");
       }
@@ -82,11 +77,11 @@ export function CloudinaryUpload({
 
   return (
     <div className="border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <label className="auth-label" htmlFor="cloudinary-file">
+      <label className="auth-label" htmlFor="object-storage-file">
         {label}
       </label>
       <input
-        id="cloudinary-file"
+        id="object-storage-file"
         type="file"
         accept="image/*"
         disabled={disabled || busy}
